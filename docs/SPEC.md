@@ -210,7 +210,7 @@ The result shape: `{ assignments, score, issues, explanationsBySeat, debug: { ph
 
 | Layer | Choice | Why |
 |---|---|---|
-| Framework | Next.js 15 (App Router) | One repo, file-based routing, Vercel deploy |
+| Framework | Next.js 16 (App Router) | One repo, file-based routing, Vercel deploy |
 | Language | TypeScript | Catches errors early; portfolio expectation |
 | Styling | Tailwind CSS + shadcn/ui | Fast, customizable, code-owned components |
 | Backend | Supabase | Postgres + Auth + Storage + RLS, zero-DevOps |

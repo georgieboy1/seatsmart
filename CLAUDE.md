@@ -23,7 +23,7 @@ Full spec: see `docs/SPEC.md`. Treat that document as the source of truth.
 
 ## Tech stack (locked for v1.0)
 
-- Next.js 15 (App Router) + TypeScript
+- Next.js 16 (App Router) + TypeScript
 - Tailwind CSS + shadcn/ui
 - Supabase (Postgres + Auth + Storage)
 - TanStack Query (server state) + Zustand (client state)
