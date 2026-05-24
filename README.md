@@ -1,36 +1,114 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SeatSmart
 
-## Getting Started
+Classroom seating, automated. Teachers model their room once, enter their roster with relevant traits, and get an optimized seating chart in seconds — with drag-and-drop fine-tuning.
 
-First, run the development server:
+> **Status:** Early development. Phase 1 (foundation + auth) complete.
+
+## Why
+
+Teachers spend 2–4 hours per term arranging seating charts by hand, balancing accommodations, peer dynamics, behavior, and physical room constraints. SeatSmart automates the constraint-solving part so that work shrinks to minutes — and lets the teacher fine-tune the result by hand from there.
+
+See [`docs/SPEC.md`](docs/SPEC.md) for the full v1.0 product specification.
+
+## Tech stack
+
+- **Next.js 16** (App Router) + **React 19** + **TypeScript**
+- **Tailwind CSS 4** + **shadcn/ui** (Radix primitives, Nova preset)
+- **Supabase** — Postgres + Auth + Storage with Row Level Security
+- **Vitest** + **React Testing Library** (unit) and **Playwright** (E2E)
+- Deployed on **Vercel**
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 20+
+- A Supabase project (free tier is fine)
+
+### Install
+
+```bash
+git clone https://github.com/YOUR-USERNAME/seatsmart.git
+cd seatsmart
+npm install
+```
+
+### Configure environment
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` with values from your Supabase project's API settings page:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+```
+
+### Configure Supabase Auth redirects
+
+In the Supabase dashboard → **Authentication → URL Configuration**:
+
+- **Site URL:** `http://localhost:3000` for local dev (or your production URL)
+- **Redirect URLs:** add `http://localhost:3000/auth/callback` and any deploy URL such as `https://seatsmart.vercel.app/auth/callback`
+
+Without this, email verification links won't redirect back to the app.
+
+### Run
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start the dev server (Turbopack) |
+| `npm run build` | Production build |
+| `npm start` | Run the production build locally |
+| `npm run lint` | ESLint |
+| `npm test` | Run all Vitest unit tests once |
+| `npm run test:watch` | Vitest in watch mode |
+| `npm run e2e` | Run Playwright E2E tests (auto-starts dev server) |
+| `npm run e2e:ui` | Playwright in interactive UI mode |
 
-## Learn More
+## Project structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+seatsmart/
+├── docs/
+│   └── SPEC.md              # source of truth for the v1.0 product spec
+├── src/
+│   ├── app/                 # Next.js App Router routes
+│   │   ├── auth/            # email verification callback + landing
+│   │   ├── dashboard/       # protected; redirects to /login if not authed
+│   │   ├── login/
+│   │   ├── signup/
+│   │   ├── page.tsx         # public landing
+│   │   └── page.test.tsx
+│   ├── components/ui/       # shadcn/ui components
+│   ├── lib/
+│   │   └── supabase/        # browser + server client factories
+│   └── proxy.ts             # session refresh on every request (renamed
+│                            # from middleware.ts in Next.js 16)
+├── e2e/                     # Playwright E2E specs
+├── CLAUDE.md                # working instructions for Claude Code
+└── AGENTS.md                # Next.js 16's own agent rules
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploying to Vercel
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Push to GitHub.
+2. Sign into [Vercel](https://vercel.com) with GitHub and import the repo. Vercel auto-detects Next.js.
+3. In **Project Settings → Environment Variables**, add the three variables from your `.env.local` for both Production and Preview scopes.
+4. Click **Deploy**. The first deploy takes about 2 minutes.
+5. Once you have the production URL, add it back to Supabase's **Site URL** and add `<production-url>/auth/callback` to **Redirect URLs**.
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[MIT](LICENSE) © Kacy George
