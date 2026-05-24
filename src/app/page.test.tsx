@@ -10,10 +10,15 @@ describe("Home page", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the Get started button", () => {
+  it("links Get started to /signup", () => {
     render(<Home />);
-    expect(
-      screen.getByRole("button", { name: /get started/i })
-    ).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /get started/i });
+    expect(link).toHaveAttribute("href", "/signup");
+  });
+
+  it("links Log in to /login", () => {
+    render(<Home />);
+    const link = screen.getByRole("link", { name: /log in/i });
+    expect(link).toHaveAttribute("href", "/login");
   });
 });

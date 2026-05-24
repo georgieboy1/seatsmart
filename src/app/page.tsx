@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
@@ -8,7 +9,14 @@ export default function Home() {
         Classroom seating, automated. Model your room once, enter your roster, and
         get an optimized chart in seconds.
       </p>
-      <Button size="lg">Get started</Button>
+      <div className="flex gap-3">
+        <Button asChild size="lg">
+          <Link href="/signup">Get started</Link>
+        </Button>
+        <Button asChild size="lg" variant="outline">
+          <Link href="/login">Log in</Link>
+        </Button>
+      </div>
     </main>
   );
 }
