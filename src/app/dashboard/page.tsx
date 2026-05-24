@@ -3,6 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { logout } from "./actions";
 
+// Auth-dependent page — never prerender. Without this, the build
+// pass tries to statically render the route and throws when
+// .env.local is missing.
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
