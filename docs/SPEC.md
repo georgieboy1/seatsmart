@@ -1,0 +1,395 @@
+# SeatSmart — Product Specification v1.0
+
+A classroom seating chart tool that automates the seating decisions teachers spend hours on every term.
+
+## 1. Vision & Goals
+
+**Problem:** Teachers spend 2–4 hours per term arranging seating charts by hand, balancing accommodations, peer dynamics, behavior, and physical room constraints. Most either redo it from scratch each time or give up and seat alphabetically.
+
+**Solution:** A web app where teachers model their physical classroom once, enter their roster with relevant traits, and get an optimized seating chart in seconds — with the ability to fine-tune by dragging students around.
+
+**Success looks like:** A teacher creates a chart in under 10 minutes that they'd be willing to actually use in their classroom on Monday morning.
+
+**Out of scope for v1.0:** Multi-teacher collaboration, attendance tracking, grade integration, billing/payments, mobile app, multi-class support (one user = one active class).
+
+## 2. Target User
+
+Primary persona: Middle/high school teacher, 1–25 years experience, manages 1–6 classes of 20–35 students each, runs Windows or Mac with Chrome/Safari/Edge, low-to-medium technical skill. Occasionally prints charts; usually views on laptop.
+
+## 3. Core Concepts (Data Model)
+
+### Classroom Layout
+
+A rectangular grid representing the physical room. Two layout types:
+
+- **Traditional:** rows × columns of seats with a perimeter of non-seat cells around the edge.
+- **Groups:** N groups of M students each, arranged in clusters. All groups are the same size in v1.0; teachers needing an odd group can toggle an interior seat cell to "empty" (see §5.3).
+
+Perimeter cells can be one of: `door`, `window`, `teacher_desk`, `whiteboard`, `charging_station`, or plain perimeter (wall). Interior cells are `seat` (assignable) or `empty` (blocked).
+
+A layout has: `id`, `name`, `type` (traditional | groups), `rows`, `columns`, `grid[][]` (cell types), `created_at`, `updated_at`.
+
+### Student
+
+A student belongs to a user. Fields:
+
+- `id`, `user_id`, `name` (required)
+- `prosocial_traits[]` — multi-select from a fixed list (helpful, focused, leader, calm, encouraging, etc.)
+- `antisocial_traits[]` — multi-select (talkative, distracted, disruptive, off-task, etc.)
+- `accommodations[]` — multi-select (near_door, near_teacher, away_from_window, near_charging, front_of_room, hearing_left, hearing_right, vision_front)
+- `peer_tutors[]` — array of other student IDs they work well with
+- `avoid[]` — array of other student IDs to keep separated
+- `notes` — free-text (optional)
+
+Trait lists are **fixed in v1.0**. Custom taxonomies are a v1.1 feature; the `notes` field is the escape hatch for anything not captured by the fixed list.
+
+### Seating Chart
+
+A specific assignment of students to a layout's seats.
+
+- `id`, `user_id`, `layout_id`, `name`
+- `assignments` — map of seat_position → student_id
+- `locked_seats` — positions the user manually locked
+- `score` — score at last save (recomputed on view)
+- `stale`, `stale_reasons[]` — see §9
+- `created_at`, `updated_at`
+
+## 4. User Flows
+
+### Flow 1: First-time setup
+
+1. Land on `/` → sign up with email/password (Supabase Auth)
+2. Verify email
+3. Land on `/dashboard` → empty state with "Create your first classroom layout" CTA
+4. Walk through layout builder → save
+5. Walk through roster builder → save
+6. Click "Generate Seating Chart" → see result
+
+Target: < 15 minutes from signup to first chart.
+
+### Flow 2: Returning user generates a new chart
+
+1. Log in → dashboard shows recent layouts and roster
+2. Click "Generate Seating Chart" → pick layout, options, generate
+3. Drag students to fine-tune → save
+4. Export as PNG or CSV → print
+
+Target: < 2 minutes.
+
+### Flow 3: Updating roster mid-term
+
+1. Dashboard → "Students" → add/edit/remove
+2. Regenerate existing chart with new roster (or accept the stale state — see §9.3)
+
+## 5. Screen Specifications
+
+### 5.1 Auth screens
+
+`/login` and `/signup` — minimal Supabase Auth UI: email, password, submit. Forgot-password flow included. Email verification required before app access.
+
+### 5.2 Dashboard (`/dashboard`)
+
+Home base after login. Shows:
+
+- Greeting with the user's display name
+- Three cards: "Classroom Layouts" (with count), "Students" (with count), "Recent Charts" (3 most recent)
+- Primary CTA: "Generate Seating Chart" (disabled if no layout or fewer than 2 students)
+- Empty states with clear guidance for new users
+
+### 5.3 Layout Builder (`/layouts/new` and `/layouts/[id]`)
+
+The most visually complex screen.
+
+**Top bar:** layout name (editable), layout type selector (Traditional / Groups), Save button.
+
+**Left panel (controls):**
+- For Traditional: rows (1–10) and columns (1–10) number inputs
+- For Groups: number of groups (1–12) and students per group (1–8)
+- "Apply" button regenerates the grid (warns if changes will be lost)
+
+**Center:** the editable grid. Cells render with color and abbreviation (D=door, W=window, TD=teacher desk, WB=whiteboard, CS=charging station, P=perimeter wall, S=seat, blank=empty). Click a perimeter cell to cycle its type. Click an interior cell to toggle seat ↔ empty.
+
+**Right panel:** legend with all cell types and brief tooltips.
+
+**Bottom:** Save, Duplicate, Delete, Cancel buttons.
+
+### 5.4 Student Roster (`/students`)
+
+Table view with inline editing where possible.
+
+**Columns:** Name, Prosocial (chips), Antisocial (chips), Accommodations (chips), Peer Tutors (count, hover for list), Avoid (count, hover for list), Actions (edit, delete).
+
+**Above the table:**
+- Search bar (filters by name)
+- "Add Student" button (opens modal)
+- "Import CSV" button (uploads a CSV with columns: name, prosocial, antisocial, accommodations — comma-separated within cells)
+- "Export CSV" button
+
+**Add/Edit modal:** name, multi-select dropdowns for each trait category, peer-tutor and avoid pickers that filter the existing student list. Save creates/updates; Cancel discards.
+
+### 5.5 Seating Chart View (`/charts/new` and `/charts/[id]`)
+
+**Top bar:** chart name, layout used (read-only), Generate / Regenerate button, Save button, Export dropdown (PNG, CSV, JSON). If the chart is stale, a banner appears here — see §9.3.
+
+**Center:** the layout grid with students placed in seats. Each seat shows student name and small icons for their key accommodations. Empty seats show "—". Locked seats show a small lock icon. Hover any seat to see its explanations (§6.4).
+
+**Right panel:**
+- "Generation options" (checkboxes): Honor accommodations, Respect peer tutors, Respect avoid list, Spread antisocial traits, Reset random seed
+- "Locked seats" count and "Unlock all" button
+- "Generation score" (0–100) with tooltip explaining what the score considers
+- "Issues" list — any violated constraints after manual edits, in plain English ("Maya and Jordan are on each other's avoid list but sit next to each other"). Populated from §6.4 explanations.
+
+**Bottom:** Save, Delete, Back to Dashboard.
+
+**Interaction:** Drag any unlocked student to swap with another seat. Right-click a seat for: Lock, Unlock, Clear, Assign specific student. Keyboard: Tab moves between seats; Enter opens seat action menu.
+
+## 6. The Seating Algorithm
+
+Pure TypeScript module at `/src/lib/seating/`. Public API:
+
+```typescript
+generateSeating(
+  students: Student[],
+  classroom: ClassroomLayout,
+  options: GenerationOptions
+): SeatingResult
+```
+
+### 6.1 Approach: constraint-weighted greedy placement
+
+**Phase 1: Hard constraints first.** Place students with accommodations into seats that satisfy them, scored by:
+- Distance to the relevant feature (door, window, teacher's desk, charging station)
+- Front/back position
+- Side of room (for hearing/vision accommodations)
+
+Use Hungarian algorithm or simple greedy match when conflicts arise. If a hard constraint cannot be satisfied, log it to `issues[]` but continue.
+
+**Phase 2: Soft constraints.** Place remaining students minimizing a cost function:
+- +10 per peer-tutor adjacency (good)
+- −50 per avoid-list adjacency (bad)
+- −5 per pair of antisocial-traited students who are adjacent
+- +3 per prosocial student adjacent to an antisocial student (peer modeling)
+
+**Phase 3: Local optimization.** Run a small number of seat-swap passes (max ~100 iterations) that try swapping pairs to reduce total cost. Stop when no swap improves the score.
+
+### 6.2 Why this approach (for the README)
+
+Greedy + local search is the right complexity tier for this problem: classroom sizes are small (20–35), so exhaustive search is unnecessary and ML/optimization libraries are overkill. The algorithm runs in under 50ms for typical inputs and is fully deterministic given a random seed, which makes it testable and reproducible.
+
+### 6.3 Required tests
+
+- Empty classroom → returns empty result
+- More students than seats → places maximum possible, lists overflow in `issues`
+- All students need same accommodation → handles gracefully
+- Avoid lists are respected when possible
+- Locked seats are never reassigned
+- Determinism: same inputs + same seed → identical outputs
+
+### 6.4 Explanations (portfolio-critical feature)
+
+Every placement decision records why it was made. Each seat in the result carries:
+
+```typescript
+explanations: Array<{
+  rule: 'accommodation' | 'peer_tutor' | 'avoid' | 'antisocial_spread' | 'prosocial_pairing' | 'default'
+  weight: number       // signed contribution to score
+  reason: string       // plain-English, teacher-facing
+}>
+```
+
+The chart UI consumes this in two places:
+
+- **Seat tooltip:** top 2–3 reasons in plain English. *"Maya is here because: needs to be near the door (accommodation), peer tutor of Sam who sits adjacent."*
+- **Issues panel (§5.5):** lists violated or compromised constraints. *"Jordan is on Alex's avoid list but sits adjacent — no better seat was available."*
+
+Building this from the start disciplines the algorithm: decisions must be inspectable, which prevents placement logic from becoming spaghetti. The cost is one extra array allocation per placement.
+
+The result shape: `{ assignments, score, issues, explanationsBySeat, debug: { phase1Time, phase2Time, swapsAttempted, swapsAccepted } }`.
+
+## 7. Tech Stack
+
+| Layer | Choice | Why |
+|---|---|---|
+| Framework | Next.js 15 (App Router) | One repo, file-based routing, Vercel deploy |
+| Language | TypeScript | Catches errors early; portfolio expectation |
+| Styling | Tailwind CSS + shadcn/ui | Fast, customizable, code-owned components |
+| Backend | Supabase | Postgres + Auth + Storage + RLS, zero-DevOps |
+| State (server) | TanStack Query | Caching, mutations, optimistic updates |
+| State (client) | Zustand | Lightweight, simple, no boilerplate |
+| Drag-and-drop | dnd-kit | Accessible, modern, well-maintained |
+| Forms | React Hook Form + Zod | Validation shared frontend/backend |
+| Tests | Vitest + Playwright | Fast unit tests + critical E2E flows |
+| Hosting | Vercel | Free hobby tier, git-push deploys |
+| Domain | Cloudflare Registrar | At-cost pricing, CDN baseline |
+
+## 8. Database Schema (Supabase / Postgres)
+
+Five tables. Row-level security policies restrict each row to its owning user.
+
+```sql
+-- users: managed by Supabase Auth (auth.users)
+
+profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users,
+  display_name TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+)
+
+layouts (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES auth.users NOT NULL,
+  name TEXT NOT NULL,
+  type TEXT CHECK (type IN ('traditional', 'groups')),
+  rows INT,
+  columns INT,
+  num_groups INT,
+  students_per_group INT,
+  grid JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+)
+
+students (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES auth.users NOT NULL,
+  name TEXT NOT NULL,
+  prosocial_traits TEXT[] DEFAULT '{}',
+  antisocial_traits TEXT[] DEFAULT '{}',
+  accommodations TEXT[] DEFAULT '{}',
+  peer_tutors UUID[] DEFAULT '{}',
+  avoid UUID[] DEFAULT '{}',
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+)
+
+seating_charts (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES auth.users NOT NULL,
+  layout_id UUID REFERENCES layouts NOT NULL,
+  name TEXT NOT NULL,
+  assignments JSONB NOT NULL,
+  locked_seats JSONB DEFAULT '[]',
+  score NUMERIC,
+  stale BOOLEAN DEFAULT FALSE,
+  stale_reasons TEXT[] DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+)
+```
+
+RLS policy template for each table: `USING (auth.uid() = user_id)`.
+
+## 9. Data Lifecycle
+
+When a teacher edits their roster or layout after a chart has been generated, what happens to the chart? The principle for v1.0:
+
+**Live references with stale-chart detection.** Charts reference students and layout cells by ID, not by snapshot. When referenced data changes, charts are marked stale and the teacher chooses whether to regenerate or accept the current state. We never silently lose data and never block roster or layout edits.
+
+### 9.1 Roster events
+
+| Event | Behavior |
+|---|---|
+| Edit name or notes | Live. Charts re-render with the new value immediately. |
+| Edit traits / accommodations / peer_tutors / avoid | Live. The chart's `issues` and current score are recalculated on view. The persisted `score` becomes "score at last save." |
+| Add student | Not auto-placed. Appears in the roster; existing charts are unaffected until the teacher regenerates or drags them into a seat. |
+| Delete student | Confirm dialog: *"Maya is placed in 2 seating charts. Remove her from your roster and clear those seats?"* On confirm, drop seat assignments and mark affected charts stale. |
+
+### 9.2 Layout events
+
+| Event | Behavior |
+|---|---|
+| Rename | Live. |
+| Toggle cell types (seat ↔ empty, perimeter swap) | Mark all referencing charts stale. Assignments to now-empty cells render with a warning icon. |
+| Resize (rows/columns) | Mark all referencing charts stale. Assignments to positions that no longer exist are dropped on view (but remain in the DB row until regenerate runs, so undo is possible). |
+| Delete | **Blocked** if any chart references the layout. Show: *"This layout is used by 3 charts. Delete or duplicate them first."* |
+
+### 9.3 The stale-chart UX
+
+A chart is "stale" when its underlying roster or layout has changed since the chart was generated. On open, a banner appears at the top of the chart view:
+
+> This chart is out of date: the layout was resized and 1 student was removed.
+> **[Regenerate]** **[Keep as-is]**
+
+- **Regenerate** runs the algorithm fresh against current data.
+- **Keep as-is** clears the stale flag and persists the current (possibly degraded) state — the teacher has explicitly accepted it.
+
+Edits to rosters and layouts never block; recovery is always one click.
+
+### 9.4 Implementation
+
+Mark the stale flag in the **application layer** (inside TanStack Query mutation hooks), not Postgres triggers. App-layer logic is visible in the codebase where a beginner can read and debug it; triggers are invisible side effects.
+
+Every mutation on `students` or `layouts` that could affect charts:
+
+1. Queries for charts that reference the changed entity.
+2. Updates `stale = true` and appends to `stale_reasons`.
+
+This is N+1-style but acceptable: a teacher has fewer than ~20 charts total, and the operation runs in a single Supabase batch. Migrate to triggers in a future version only if mutation logic becomes unwieldy.
+
+### 9.5 Required tests
+
+In addition to the algorithm tests in §6:
+
+- Generate chart → delete a placed student → assert chart is stale, seat is empty, `stale_reasons` contains the right entry.
+- Generate chart → resize layout smaller → assert assignments outside the new bounds are dropped on view but recoverable via regenerate.
+- Edit student traits → assert the recalculated issues and score reflect the new traits without regeneration.
+- Attempt to delete a layout that's in use → assert deletion is blocked with the correct error message.
+
+### 9.6 Deferred to v1.1
+
+- **Layout versioning / copy-on-write.** Snapshotting the layout grid into each chart so old charts always render exactly as generated. The stale banner covers 95% of the pain at 5% of the work.
+- **"Frozen" charts.** Letting teachers mark a chart "final, do not auto-update."
+- **Soft-delete + undo for students.** 30-day restore window. Hard-delete with confirmation is sufficient for v1.0.
+
+## 10. Non-Functional Requirements
+
+- **Performance:** Seating generation < 500ms p95. Page loads < 2s on 3G.
+- **Accessibility:** WCAG AA. Keyboard-navigable grids, ARIA labels on all seats, sufficient color contrast, no color-only meaning (also use icons/text).
+- **Browser support:** Last 2 versions of Chrome, Safari, Firefox, Edge.
+- **Responsive:** Layout and chart screens work on screens ≥ 1024px. Mobile shows a "Best on desktop" notice for editor pages but allows read-only viewing.
+- **Privacy:** All student data scoped to the teacher account. No tracking pixels, no third-party analytics in v1.0. Privacy policy and ToS pages required.
+- **Error handling:** Every async operation has loading + error states. Network errors show retry. Form validation inline.
+
+## 11. Out-of-Scope Reminders (v1.0)
+
+To stay focused, the following are explicitly not in v1.0:
+
+- Multi-class / multi-period support
+- Sharing layouts or charts between users
+- Real-time collaboration
+- Mobile-first responsive editing
+- PDF export (PNG is enough; print stylesheet covers paper output)
+- Excel import/export (CSV only)
+- Custom trait/accommodation taxonomies (use the fixed list)
+- Student photos or avatars
+- Attendance, grades, or any LMS integration
+- Billing, plans, or paywalls
+- Email notifications
+
+## 12. Launch Checklist
+
+Before declaring v1.0 done:
+
+- [ ] All five screens functional end-to-end
+- [ ] Algorithm has ≥ 90% test coverage
+- [ ] At least one Playwright E2E test for the full happy path
+- [ ] Accessibility audit passes (axe DevTools, manual keyboard test)
+- [ ] README with screenshots, live demo link, architecture explanation
+- [ ] `/lib/seating/README.md` explaining the algorithm
+- [ ] Privacy policy and ToS pages
+- [ ] Custom domain + HTTPS
+- [ ] Two real teachers have tested it and given feedback
+- [ ] Error monitoring set up (Sentry free tier)
+- [ ] Open source under MIT license with clear contribution guide
+
+## 13. Project Phases (4–6 weeks part-time)
+
+| Phase | Duration | Output |
+|---|---|---|
+| 1. Foundation | 3 days | Next.js + Supabase + Vercel live with auth |
+| 2. Layout Builder | 1 week | Save/load classroom layouts |
+| 3. Roster | 1 week | Student CRUD with CSV import/export |
+| 4. Algorithm | 1 week | Pure tested module + Generate button + explanations |
+| 5. Manual Edit | 4 days | Drag-and-drop + lock + export PNG |
+| 6. Polish | 4 days | A11y, README, two teacher tests, launch |

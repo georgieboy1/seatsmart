@@ -1,0 +1,56 @@
+# CLAUDE.md — Working Instructions for Claude Code
+
+## Project
+
+SeatSmart — an open-source classroom seating chart web app.
+Full spec: see `docs/SPEC.md`. Treat that document as the source of truth.
+
+## My situation
+
+- I am a beginner. Explain decisions as you make them.
+- I will read every file you create or modify. If I don't understand something, I will ask. Write code I can learn from.
+- I want to ship a portfolio-worthy v1.0. Cut scope before cutting quality.
+
+## How to work with me
+
+1. **One task at a time.** Don't build "the whole roster page" in one shot. Break work into commits I can review individually.
+2. **Plan before coding.** For any task larger than a single file, write a brief plan first and wait for me to approve it.
+3. **Explain as you go.** When you introduce a new pattern, library, or concept, add a 2–3 sentence comment in the code or summarize it in your reply. I'd rather move slower and understand.
+4. **Ask, don't assume.** If the spec is ambiguous, ask me. Don't pick for me on architectural or product decisions.
+5. **Test what you build.** Especially the seating algorithm — that's the portfolio centerpiece. Aim for 90%+ coverage there.
+6. **Commit frequently with clear messages.** One logical change per commit. Conventional commits style: `feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`.
+7. **Run things before claiming they work.** Use the dev server, run tests, check the browser console. Don't say "this should work" — verify it works.
+
+## Tech stack (locked for v1.0)
+
+- Next.js 15 (App Router) + TypeScript
+- Tailwind CSS + shadcn/ui
+- Supabase (Postgres + Auth + Storage)
+- TanStack Query (server state) + Zustand (client state)
+- React Hook Form + Zod
+- dnd-kit for drag-and-drop
+- Vitest (unit) + Playwright (E2E)
+- Deployed on Vercel
+
+Do not introduce new dependencies without proposing them first and explaining the tradeoff.
+
+## Data lifecycle invariants
+
+These rules are non-negotiable. See §9 of the spec for full context.
+
+- **Mark charts stale in the app layer, not Postgres triggers.** When mutating `students` or `layouts` inside a TanStack Query mutation, update the `stale` flag and append to `stale_reasons` on every affected `seating_charts` row in the same mutation. Triggers are invisible side effects and harder to debug.
+- **Never delete a layout that's referenced by a chart.** Block the action and surface the chart count to the user: *"This layout is used by 3 charts. Delete or duplicate them first."*
+- **Never silently drop data.** When a referenced student or seat position disappears, the seat renders as empty with a warning indicator — the underlying assignment stays in the DB until the user explicitly regenerates or clears.
+- **Algorithm placements must record their reasons.** Every seat in a generated chart carries an `explanations[]` array (see SPEC §6.4). Seat tooltips and the issues panel both read from this — do not duplicate the logic in the UI.
+
+## What's in `/reference`
+
+Old WordPress plugin code with the same product idea. Use it for feature scope and visual reference only. Do NOT port it line-by-line — it has real bugs and mixed responsibilities. Architect the new version cleanly from the spec.
+
+## Out of scope for v1.0
+
+Listed in `docs/SPEC.md` §11. If a feature isn't there, ask before building it. We are deliberately cutting scope to ship.
+
+## When you get stuck
+
+Tell me what's blocking you and what options you considered. Don't hack around problems silently.
