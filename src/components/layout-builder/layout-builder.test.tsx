@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { LayoutBuilder } from "./layout-builder";
 import type { ClassroomLayout } from "@/lib/types/layout";
 
@@ -72,5 +72,29 @@ describe("LayoutBuilder", () => {
     expect(
       screen.getByRole("button", { name: /^groups$/i }),
     ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("advances a perimeter cell through the cycle when clicked", () => {
+    render(<LayoutBuilder layout={makeTraditional()} />);
+
+    // (0,0) starts as "perimeter" — fullName is "Wall".
+    const wall = screen.getByLabelText(/wall at row 0, column 0/i);
+    fireEvent.click(wall);
+
+    // Next in PERIMETER_CYCLE after "perimeter" is "door".
+    expect(
+      screen.getByLabelText(/door at row 0, column 0/i),
+    ).toBeInTheDocument();
+  });
+
+  it("toggles an interior seat to empty and back on consecutive clicks", () => {
+    render(<LayoutBuilder layout={makeTraditional()} />);
+
+    fireEvent.click(screen.getByLabelText(/seat at row 1, column 1/i));
+    fireEvent.click(screen.getByLabelText(/empty at row 1, column 1/i));
+
+    expect(
+      screen.getByLabelText(/seat at row 1, column 1/i),
+    ).toBeInTheDocument();
   });
 });

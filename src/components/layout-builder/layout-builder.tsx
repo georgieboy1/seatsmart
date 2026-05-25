@@ -1,8 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import type { ClassroomLayout, LayoutType } from "@/lib/types/layout";
+import type {
+  CellType,
+  ClassroomLayout,
+  LayoutType,
+} from "@/lib/types/layout";
+import { PERIMETER_CYCLE, INTERIOR_TOGGLE } from "@/lib/types/layout";
+import {
+  createTraditionalGrid,
+  createGroupsGrid,
+} from "@/lib/layouts/grid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ControlsPanel } from "./controls-panel";
@@ -18,10 +27,51 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
   const [studentsPerGroup, setStudentsPerGroup] = useState(
     layout.studentsPerGroup ?? 4,
   );
+  const [grid, setGrid] = useState<CellType[][]>(layout.grid);
 
-  // Grid stays read-only in 2.4. Interactivity (click to edit, Apply
-  // to regenerate) lands in 2.5; until then, just display the saved grid.
-  const grid = layout.grid;
+  // Baseline for "discard edits?" check. Updated after every successful
+  // Apply so future Applies compare against the most recent baseline,
+  // not the original load.
+  const originalGridRef = useRef(layout.grid);
+
+  function handleCellClick(r: number, c: number) {
+    setGrid((prev) => {
+      const totalRows = prev.length;
+      const totalCols = prev[0]?.length ?? 0;
+      const isPerimeter =
+        r === 0 || r === totalRows - 1 || c === 0 || c === totalCols - 1;
+
+      const cycle = isPerimeter ? PERIMETER_CYCLE : INTERIOR_TOGGLE;
+      const currentIdx = cycle.indexOf(prev[r][c]);
+      const nextValue =
+        cycle[currentIdx === -1 ? 0 : (currentIdx + 1) % cycle.length];
+
+      const next = prev.map((row) => [...row]);
+      next[r][c] = nextValue;
+      return next;
+    });
+  }
+
+  function handleApply() {
+    const hasEdits =
+      JSON.stringify(grid) !== JSON.stringify(originalGridRef.current);
+    if (
+      hasEdits &&
+      !window.confirm(
+        "Applying will regenerate the grid and discard your cell edits. Continue?",
+      )
+    ) {
+      return;
+    }
+
+    const next =
+      type === "traditional"
+        ? createTraditionalGrid(rows, columns)
+        : createGroupsGrid(numGroups, studentsPerGroup);
+
+    setGrid(next);
+    originalGridRef.current = next;
+  }
 
   return (
     <div className="space-y-6">
@@ -72,12 +122,10 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
           onColumnsChange={setColumns}
           onNumGroupsChange={setNumGroups}
           onStudentsPerGroupChange={setStudentsPerGroup}
-          onApply={() => {
-            /* wired in 2.5 */
-          }}
+          onApply={handleApply}
         />
         <div className="flex justify-center overflow-auto">
-          <GridView grid={grid} />
+          <GridView grid={grid} onCellClick={handleCellClick} />
         </div>
         <Legend />
       </div>

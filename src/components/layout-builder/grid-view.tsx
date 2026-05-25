@@ -1,7 +1,12 @@
 import type { CellType } from "@/lib/types/layout";
 import { CELL_META } from "./cell-meta";
 
-export function GridView({ grid }: { grid: CellType[][] }) {
+type Props = {
+  grid: CellType[][];
+  onCellClick?: (r: number, c: number) => void;
+};
+
+export function GridView({ grid, onCellClick }: Props) {
   if (grid.length === 0 || grid[0].length === 0) return null;
   const columns = grid[0].length;
 
@@ -15,12 +20,30 @@ export function GridView({ grid }: { grid: CellType[][] }) {
       {grid.flatMap((row, r) =>
         row.map((cell, c) => {
           const meta = CELL_META[cell];
+          const label = `${meta.fullName} at row ${r}, column ${c}`;
+          const baseClasses = `aspect-square flex items-center justify-center rounded-sm border text-xs font-medium ${meta.bg} ${meta.border} ${meta.text}`;
+
+          if (onCellClick) {
+            return (
+              <button
+                type="button"
+                key={`${r}-${c}`}
+                role="gridcell"
+                aria-label={label}
+                onClick={() => onCellClick(r, c)}
+                className={`${baseClasses} cursor-pointer transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
+              >
+                {meta.label}
+              </button>
+            );
+          }
+
           return (
             <div
               key={`${r}-${c}`}
               role="gridcell"
-              aria-label={`${meta.fullName} at row ${r}, column ${c}`}
-              className={`aspect-square flex items-center justify-center rounded-sm border text-xs font-medium ${meta.bg} ${meta.border} ${meta.text}`}
+              aria-label={label}
+              className={baseClasses}
             >
               {meta.label}
             </div>
