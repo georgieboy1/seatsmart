@@ -1,18 +1,19 @@
 # SeatSmart
 
-Classroom seating, automated. Teachers model their room once, enter their roster with relevant traits, and get an optimized seating chart in seconds — with drag-and-drop fine-tuning.
+Adaptive seating, automated. Educators and event hosts model a room once, enter attendees with relevant constraints, and get an optimized seating chart in seconds — with drag-and-drop fine-tuning.
 
 > **Status:** Phase 5 complete, Phase 6 in progress.
 
 ## Features
 
-- **Classroom Layout Builder:** Model your physical room with seats, doors, windows, and more.
-- **Student Roster:** Manage students with prosocial/antisocial traits and specific accommodations.
-- **Smart Seating Algorithm:** Greedy + local optimization algorithm that respects accommodations and peer dynamics.
-- **Interactive Fine-tuning:** Drag-and-drop students to swap seats, and lock students into specific positions.
-- **Stale Chart Detection:** Automatically flags charts that need updating when roster or layout data changes.
+- **Layout Builder:** Model your physical room with seats, doors, windows, and more.
+- **Workspace Modes:** Switch between education and events language/defaults without changing the core data model.
+- **Attendee Roster:** Manage attendees with constraints, allergies, health flags, family/grouping data, and relationship preferences.
+- **Smart Seating Algorithm:** Greedy + local optimization algorithm that respects constraints and relationship dynamics.
+- **Interactive Fine-tuning:** Drag-and-drop attendees to swap seats, and lock attendees into specific positions.
+- **Stale Chart Detection:** Automatically flags charts that need updating when attendee, cohort, or layout data changes.
 - **Export Options:** Download your charts as PNG (for printing), CSV (for grading), or JSON.
-- **Privacy First:** Data owned by the teacher, secured with Supabase Row Level Security.
+- **Privacy First:** Data owned by the account holder, secured with Supabase Row Level Security.
 
 See [`docs/SPEC.md`](docs/SPEC.md) for the full v1.0 product specification.
 

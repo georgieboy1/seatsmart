@@ -2,7 +2,7 @@
 
 ## Project
 
-SeatSmart — an open-source classroom seating chart web app.
+SeatSmart — an open-source seating chart web app for education and events.
 Full spec: see `docs/SPEC.md`. Treat that document as the source of truth.
 
 ## My situation
@@ -13,7 +13,7 @@ Full spec: see `docs/SPEC.md`. Treat that document as the source of truth.
 
 ## How to work with me
 
-1. **One task at a time.** Don't build "the whole roster page" in one shot. Break work into commits I can review individually.
+1. **One task at a time.** Don't build "the whole attendee roster page" in one shot. Break work into commits I can review individually.
 2. **Plan before coding.** For any task larger than a single file, write a brief plan first and wait for me to approve it.
 3. **Explain as you go.** When you introduce a new pattern, library, or concept, add a 2–3 sentence comment in the code or summarize it in your reply. I'd rather move slower and understand.
 4. **Ask, don't assume.** If the spec is ambiguous, ask me. Don't pick for me on architectural or product decisions.
@@ -38,14 +38,15 @@ Do not introduce new dependencies without proposing them first and explaining th
 
 These rules are non-negotiable. See §9 of the spec for full context.
 
-- **Mark charts stale in the app layer, not Postgres triggers.** When mutating `students` or `layouts` inside a TanStack Query mutation, update the `stale` flag and append to `stale_reasons` on every affected `seating_charts` row in the same mutation. Triggers are invisible side effects and harder to debug.
+- **Mark charts stale in the app layer, not Postgres triggers.** When mutating `attendees`, `cohorts`, or `layouts`, update the `stale` flag and append to `stale_reasons` on every affected `seating_charts` row in the same mutation. Triggers are invisible side effects and harder to debug.
 - **Never delete a layout that's referenced by a chart.** Block the action and surface the chart count to the user: *"This layout is used by 3 charts. Delete or duplicate them first."*
-- **Never silently drop data.** When a referenced student or seat position disappears, the seat renders as empty with a warning indicator — the underlying assignment stays in the DB until the user explicitly regenerates or clears.
+- **Never silently drop data.** When a referenced attendee, cohort, or seat position disappears, the seat renders as empty with a warning indicator — the underlying assignment stays in the DB until the user explicitly regenerates or clears.
 - **Algorithm placements must record their reasons.** Every seat in a generated chart carries an `explanations[]` array (see SPEC §6.4). Seat tooltips and the issues panel both read from this — do not duplicate the logic in the UI.
 
 ## Architectural Decisions
 
-- **Cohorts are optional but encouraged.** Although §1 of the spec suggests one user = one class, we've implemented an intermediate 'Cohort' layer to support multi-class management. To preserve the "one class" UX, chart generation does NOT require a cohort; users can select "All Students (No Cohort)" to skip the grouping logic.
+- **Cohorts are optional but encouraged.** Cohorts are the grouping primitive across workspace types: class periods in education, event groups/families/RSVP batches in events. Chart generation does NOT require a cohort; users can select all attendees to skip grouping.
+- **Workspace type controls language and defaults, not ownership.** `profiles.workspace_type` can be `education` or `events`. The underlying database model uses `attendees`; education UI may still say "students" where that helps users.
 - **Manual score invalidation.** Any manual swap in the seating chart view clears the algorithmically generated score and explanations. This ensures the UI doesn't display stale or misleading metrics after the user has manually overridden the optimized layout.
 
 ## What's in `/reference`
