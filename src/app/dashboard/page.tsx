@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listLayouts } from "@/lib/layouts/actions";
 import { listAttendees } from "@/lib/attendees/actions";
 import { listCharts } from "@/lib/charts/actions";
-import { listCohorts, createCohort } from "@/lib/cohorts/actions";
+import { listCohorts, createCohort, deleteCohort } from "@/lib/cohorts/actions";
 import { logout, toggleWorkspace } from "./actions";
-import { LayoutGrid, Users, ClipboardList, Plus, LogOut, GraduationCap, School, Building2 } from "lucide-react";
+import { LayoutGrid, Users, ClipboardList, Plus, LogOut, GraduationCap, School, Building2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { getProfile } from "@/lib/attendees/profile";
 import { getTerminology } from "@/lib/utils/terminology";
@@ -100,7 +100,7 @@ export default async function DashboardPage({
               <LayoutGrid className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{layouts.length}</div>
+              <div className="text-2xl font-bold tabular-nums">{layouts.length}</div>
               <p className="text-xs text-muted-foreground">
                 Model your physical {workspaceType === "education" ? "classrooms" : "venues"}
               </p>
@@ -115,7 +115,7 @@ export default async function DashboardPage({
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{attendees.length}</div>
+              <div className="text-2xl font-bold tabular-nums">{attendees.length}</div>
               <p className="text-xs text-muted-foreground">
                 Manage your {t.person.toLowerCase()} list and relationships
               </p>
@@ -126,11 +126,11 @@ export default async function DashboardPage({
         <Link href="/charts" className="transition-transform hover:scale-[1.01]">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium">Recent Charts</CardTitle>
+              <CardTitle className="text-sm font-medium">Charts</CardTitle>
               <ClipboardList className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{charts.length}</div>
+              <div className="text-2xl font-bold tabular-nums">{charts.length}</div>
               <p className="text-xs text-muted-foreground">
                 Optimized seating assignments
               </p>
@@ -149,12 +149,37 @@ export default async function DashboardPage({
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{cohorts.length}</div>
-            <p className="text-xs text-muted-foreground mb-4">
-              {workspaceType === "education" 
-                ? "Groups like 'Class 1A' or 'FAMU'" 
+            <div className="text-2xl font-bold tabular-nums">{cohorts.length}</div>
+            <p className="text-xs text-muted-foreground mb-3">
+              {workspaceType === "education"
+                ? "Groups like 'Class 1A' or 'FAMU'"
                 : "Groups like 'Family', 'Friends', or 'Work'"}
             </p>
+
+            {/* Existing cohorts as removable chips so the user sees
+                what's saved before they type a new one. */}
+            {cohorts.length > 0 && (
+              <ul className="mb-3 flex flex-wrap gap-1.5">
+                {cohorts.map((cohort) => (
+                  <li key={cohort.id}>
+                    <form
+                      action={deleteCohort.bind(null, cohort.id)}
+                      className="inline-flex items-center gap-1 border-[1.5px] border-foreground bg-background px-2 py-0.5 text-xs"
+                    >
+                      <span>{cohort.name}</span>
+                      <button
+                        type="submit"
+                        aria-label={`Remove ${cohort.name}`}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            )}
+
             <form action={createCohort} className="flex gap-2">
               <Input name="name" placeholder={`New ${t.group.toLowerCase()} name...`} required className="h-8 text-xs" />
               <Button type="submit" size="sm" variant="secondary" className="h-8 text-xs">Add</Button>
@@ -179,15 +204,20 @@ export default async function DashboardPage({
       </div>
 
       {charts.length > 0 && (
-        <div className="mt-12">
-          <h3 className="mb-4 text-lg font-medium">Recent Charts</h3>
+        <section className="mt-16 border-t-[1.5px] border-foreground pt-8">
+          <div className="mb-6 flex items-baseline justify-between">
+            <h2 className="text-2xl font-semibold tracking-tight">Recent Charts</h2>
+            <Link href="/charts" className="text-xs text-muted-foreground hover:text-foreground hover:underline">
+              View all →
+            </Link>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {charts.slice(0, 3).map((chart) => (
               <Link key={chart.id} href={`/charts/${chart.id}`}>
                 <Card className="hover:bg-accent/50 transition-colors">
                   <CardHeader>
                     <CardTitle className="text-base">{chart.name}</CardTitle>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground tabular-nums">
                       Updated {new Date(chart.updatedAt).toLocaleDateString()}
                     </p>
                   </CardHeader>
@@ -195,7 +225,7 @@ export default async function DashboardPage({
               </Link>
             ))}
           </div>
-        </div>
+        </section>
       )}
     </main>
   );
