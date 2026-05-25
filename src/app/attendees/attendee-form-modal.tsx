@@ -1,27 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Student } from "@/lib/types/student";
+import type { Attendee } from "@/lib/types/attendee";
 import type { Cohort } from "@/lib/types/cohort";
 import {
-  ACCOMMODATIONS,
+  DIETARY_ACCESSIBILITY,
   ANTISOCIAL_TRAITS,
   PROSOCIAL_TRAITS,
-} from "@/lib/students/constants";
-import { createStudent, updateStudent } from "@/lib/students/actions";
+} from "@/lib/attendees/constants";
+import { createAttendee, updateAttendee } from "@/lib/attendees/actions";
 import { listCohorts } from "@/lib/cohorts/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useTerminology } from "@/components/providers/terminology-provider";
 
-type StudentFormModalProps = {
-  student: Student | null;
-  students: Student[];
+type AttendeeFormModalProps = {
+  attendee: Attendee | null;
+  attendees: Attendee[];
   onClose: () => void;
 };
 
 type CheckboxGroupProps = {
-  name: "prosocialTraits" | "antisocialTraits" | "accommodations";
+  name: "prosocialTraits" | "antisocialTraits" | "constraints";
   title: string;
   options: readonly { value: string; label: string; description?: string }[];
   selected: readonly string[];
@@ -64,27 +65,30 @@ function toggleId(ids: string[], id: string): string[] {
 }
 
 function RelationshipPicker({
-  currentStudentId,
-  students,
-  peerTutors,
-  avoid,
-  onPeerTutorsChange,
-  onAvoidChange,
+  currentAttendeeId,
+  attendees,
+  togetherIds,
+  separateIds,
+  togetherLabel,
+  separateLabel,
+  onMustSitTogetherChange,
+  onStrictlySeparateChange,
 }: {
-  currentStudentId: string | null;
-  students: Student[];
-  peerTutors: string[];
-  avoid: string[];
-  onPeerTutorsChange: (ids: string[]) => void;
-  onAvoidChange: (ids: string[]) => void;
+  currentAttendeeId: string | null;
+  attendees: Attendee[];
+  togetherIds: string[];
+  separateIds: string[];
+  togetherLabel: string;
+  separateLabel: string;
+  onMustSitTogetherChange: (ids: string[]) => void;
+  onStrictlySeparateChange: (ids: string[]) => void;
 }) {
-  const options = students.filter((student) => student.id !== currentStudentId);
+  const options = attendees.filter((attendee) => attendee.id !== currentAttendeeId);
 
   if (options.length === 0) {
     return (
       <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-        Add at least one other student before choosing peer tutors or avoid-list
-        relationships.
+        Add at least one other person before choosing relationship rules.
       </div>
     );
   }
@@ -92,11 +96,11 @@ function RelationshipPicker({
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">Peer tutors</legend>
+        <legend className="text-sm font-medium">{togetherLabel}</legend>
         <div className="space-y-2">
           {options.map((option) => {
-            const checked = peerTutors.includes(option.id);
-            const disabled = avoid.includes(option.id);
+            const checked = togetherIds.includes(option.id);
+            const disabled = separateIds.includes(option.id);
 
             return (
               <label
@@ -104,12 +108,12 @@ function RelationshipPicker({
                 className="flex gap-2 rounded-md border p-2 text-sm"
               >
                 <input
-                  aria-label={`${option.name} as peer tutor`}
+                  aria-label={`${option.name} ${togetherLabel.toLowerCase()}`}
                   checked={checked}
                   className="mt-1 size-4"
                   disabled={disabled}
-                  name="peerTutors"
-                  onChange={() => onPeerTutorsChange(toggleId(peerTutors, option.id))}
+                  name="togetherIds"
+                  onChange={() => onMustSitTogetherChange(toggleId(togetherIds, option.id))}
                   type="checkbox"
                   value={option.id}
                 />
@@ -117,7 +121,7 @@ function RelationshipPicker({
                   <span className="block font-medium">{option.name}</span>
                   {disabled && (
                     <span className="block text-xs text-muted-foreground">
-                      Remove from avoid list first.
+                      Remove from separate list first.
                     </span>
                   )}
                 </span>
@@ -128,11 +132,11 @@ function RelationshipPicker({
       </fieldset>
 
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">Avoid list</legend>
+        <legend className="text-sm font-medium">{separateLabel}</legend>
         <div className="space-y-2">
           {options.map((option) => {
-            const checked = avoid.includes(option.id);
-            const disabled = peerTutors.includes(option.id);
+            const checked = separateIds.includes(option.id);
+            const disabled = togetherIds.includes(option.id);
 
             return (
               <label
@@ -140,12 +144,12 @@ function RelationshipPicker({
                 className="flex gap-2 rounded-md border p-2 text-sm"
               >
                 <input
-                  aria-label={`${option.name} on avoid list`}
+                  aria-label={`${option.name} ${separateLabel.toLowerCase()}`}
                   checked={checked}
                   className="mt-1 size-4"
                   disabled={disabled}
-                  name="avoid"
-                  onChange={() => onAvoidChange(toggleId(avoid, option.id))}
+                  name="separateIds"
+                  onChange={() => onStrictlySeparateChange(toggleId(separateIds, option.id))}
                   type="checkbox"
                   value={option.id}
                 />
@@ -153,7 +157,7 @@ function RelationshipPicker({
                   <span className="block font-medium">{option.name}</span>
                   {disabled && (
                     <span className="block text-xs text-muted-foreground">
-                      Remove from peer tutors first.
+                      Remove from together list first.
                     </span>
                   )}
                 </span>
@@ -166,19 +170,20 @@ function RelationshipPicker({
   );
 }
 
-export function StudentFormModal({
-  student,
-  students,
+export function AttendeeFormModal({
+  attendee,
+  attendees,
   onClose,
-}: StudentFormModalProps) {
-  const isEditing = Boolean(student);
-  const action = student ? updateStudent.bind(null, student.id) : createStudent;
-  const initialPeerTutors = student?.peerTutors ?? [];
-  const initialAvoid = (student?.avoid ?? []).filter(
-    (id) => !initialPeerTutors.includes(id),
+}: AttendeeFormModalProps) {
+  const t = useTerminology();
+  const isEditing = Boolean(attendee);
+  const action = attendee ? updateAttendee.bind(null, attendee.id) : createAttendee;
+  const initialTogether = attendee?.togetherIds ?? [];
+  const initialSeparate = (attendee?.separateIds ?? []).filter(
+    (id) => !initialTogether.includes(id),
   );
-  const [peerTutors, setPeerTutors] = useState(initialPeerTutors);
-  const [avoid, setAvoid] = useState(initialAvoid);
+  const [togetherIds, setTogetherIds] = useState(initialTogether);
+  const [separateIds, setSeparateIds] = useState(initialSeparate);
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
 
   useEffect(() => {
@@ -195,25 +200,24 @@ export function StudentFormModal({
         className="mt-10 w-full max-w-3xl rounded-lg border bg-background shadow-lg"
         role="dialog"
       >
-        <form key={student?.id ?? "new"} action={action}>
+        <form key={attendee?.id ?? "new"} action={action}>
           <div className="border-b p-5">
             <h2 className="text-xl font-semibold tracking-tight">
-              {isEditing ? "Edit student" : "Add student"}
+              {isEditing ? `Edit ${t.person.toLowerCase()}` : `Add ${t.person.toLowerCase()}`}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Traits and accommodations are fixed for v1.0 so the seating
-              algorithm can reason about them predictably.
+              Social proximity and {t.constraints.toLowerCase()} help the algorithm arrange the perfect layout.
             </p>
           </div>
 
           <div className="space-y-6 p-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="student-name">Name</Label>
+                <Label htmlFor="attendee-name">First Name</Label>
                 <Input
                   autoFocus
-                  defaultValue={student?.name ?? ""}
-                  id="student-name"
+                  defaultValue={attendee?.name ?? ""}
+                  id="attendee-name"
                   maxLength={100}
                   name="name"
                   required
@@ -221,14 +225,24 @@ export function StudentFormModal({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="student-cohort">Cohort</Label>
+                <Label htmlFor="attendee-familyName">Last Name</Label>
+                <Input
+                  defaultValue={attendee?.familyName ?? ""}
+                  id="attendee-familyName"
+                  maxLength={100}
+                  name="familyName"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="attendee-cohort">{t.group}</Label>
                 <select
                   className="flex h-10 w-full rounded-md border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  defaultValue={student?.cohortId ?? ""}
-                  id="student-cohort"
+                  defaultValue={attendee?.cohortId ?? ""}
+                  id="attendee-cohort"
                   name="cohortId"
                 >
-                  <option value="">No Cohort</option>
+                  <option value="">No {t.group}</option>
                   {cohorts.map((cohort) => (
                     <option key={cohort.id} value={cohort.id}>
                       {cohort.name}
@@ -236,44 +250,59 @@ export function StudentFormModal({
                   ))}
                 </select>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="attendee-age">Age (optional)</Label>
+                <Input
+                  defaultValue={attendee?.age ?? ""}
+                  id="attendee-age"
+                  name="age"
+                  type="number"
+                  min={1}
+                />
+              </div>
             </div>
 
             <CheckboxGroup
-              name="prosocialTraits"
-              title="Prosocial traits"
-              options={PROSOCIAL_TRAITS}
-              selected={student?.prosocialTraits ?? []}
+              name="constraints"
+              title={t.constraints}
+              options={DIETARY_ACCESSIBILITY}
+              selected={attendee?.constraints ?? []}
             />
 
-            <CheckboxGroup
-              name="antisocialTraits"
-              title="Antisocial traits"
-              options={ANTISOCIAL_TRAITS}
-              selected={student?.antisocialTraits ?? []}
-            />
+            <div className="space-y-4 rounded-md border border-amber-200 bg-amber-50/50 p-4">
+              <div className="space-y-2">
+                <Label htmlFor="attendee-allergies">Specific Allergies</Label>
+                <Input
+                  defaultValue={attendee?.allergies?.join(", ") ?? ""}
+                  id="attendee-allergies"
+                  name="allergies"
+                  placeholder="Peanuts, Shellfish, etc."
+                />
+              </div>
 
-            <CheckboxGroup
-              name="accommodations"
-              title="Accommodations"
-              options={ACCOMMODATIONS}
-              selected={student?.accommodations ?? []}
-            />
+              <p className="text-[11px] font-medium text-amber-800 leading-tight">
+                Note: Health and dietary data is sensitive. Ensure compliance with privacy policies before storing medical data.
+              </p>
+            </div>
 
             <RelationshipPicker
-              currentStudentId={student?.id ?? null}
-              students={students}
-              peerTutors={peerTutors}
-              avoid={avoid}
-              onPeerTutorsChange={setPeerTutors}
-              onAvoidChange={setAvoid}
+              currentAttendeeId={attendee?.id ?? null}
+              attendees={attendees}
+              togetherIds={togetherIds}
+              separateIds={separateIds}
+              togetherLabel={t.together}
+              separateLabel={t.separate}
+              onMustSitTogetherChange={setTogetherIds}
+              onStrictlySeparateChange={setSeparateIds}
             />
 
             <div className="space-y-2">
-              <Label htmlFor="student-notes">Notes</Label>
+              <Label htmlFor="attendee-notes">Internal Planner Notes</Label>
               <textarea
                 className="min-h-24 w-full rounded-md border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                defaultValue={student?.notes ?? ""}
-                id="student-notes"
+                defaultValue={attendee?.notes ?? ""}
+                id="attendee-notes"
                 maxLength={1000}
                 name="notes"
               />
@@ -284,7 +313,7 @@ export function StudentFormModal({
             <Button onClick={onClose} type="button" variant="outline">
               Cancel
             </Button>
-            <Button type="submit">{isEditing ? "Save changes" : "Add student"}</Button>
+            <Button type="submit">{isEditing ? "Save changes" : `Add ${t.person.toLowerCase()}`}</Button>
           </div>
         </form>
       </div>

@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
-import type { Student } from "@/lib/types/student";
+import type { Attendee } from "@/lib/types/attendee";
 import { optimizeSeatSwaps } from "./phase3";
 
-function makeStudent(overrides: Partial<Student> = {}): Student {
+function makeAttendee(overrides: Partial<Attendee> = {}): Attendee {
   return {
-    id: "student-1",
+    id: "attendee-1",
     userId: "user-1",
     name: "Maya Chen",
     prosocialTraits: [],
     antisocialTraits: [],
-    accommodations: [],
-    peerTutors: [],
-    avoid: [],
+    constraints: [],
+    togetherIds: [],
+    separateIds: [],
     notes: null,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-02T00:00:00.000Z",
@@ -21,14 +21,14 @@ function makeStudent(overrides: Partial<Student> = {}): Student {
 
 describe("optimizeSeatSwaps", () => {
   it("accepts swaps that improve relationship score", () => {
-    const students = [
-      makeStudent({ id: "maya", name: "Maya", peerTutors: ["sam"] }),
-      makeStudent({ id: "sam", name: "Sam" }),
-      makeStudent({ id: "jordan", name: "Jordan" }),
+    const attendees = [
+      makeAttendee({ id: "maya", name: "Maya", togetherIds: ["sam"] }),
+      makeAttendee({ id: "sam", name: "Sam" }),
+      makeAttendee({ id: "jordan", name: "Jordan" }),
     ];
 
     const result = optimizeSeatSwaps({
-      students,
+      attendees,
       assignments: {
         "1,1": "maya",
         "1,2": "jordan",
@@ -41,19 +41,19 @@ describe("optimizeSeatSwaps", () => {
     expect(result.swapsAccepted).toBe(1);
     expect(
       Object.entries(result.assignments).some(
-        ([seatKey, studentId]) => seatKey === "1,2" && studentId === "sam",
+        ([seatKey, externalId]) => seatKey === "1,2" && externalId === "sam",
       ),
     ).toBe(true);
   });
 
   it("does not accept swaps that fail to improve score", () => {
-    const students = [
-      makeStudent({ id: "maya", name: "Maya", peerTutors: ["sam"] }),
-      makeStudent({ id: "sam", name: "Sam" }),
+    const attendees = [
+      makeAttendee({ id: "maya", name: "Maya", togetherIds: ["sam"] }),
+      makeAttendee({ id: "sam", name: "Sam" }),
     ];
 
     const result = optimizeSeatSwaps({
-      students,
+      attendees,
       assignments: {
         "1,1": "maya",
         "1,2": "sam",
@@ -66,14 +66,14 @@ describe("optimizeSeatSwaps", () => {
   });
 
   it("does not move locked seats", () => {
-    const students = [
-      makeStudent({ id: "maya", name: "Maya", peerTutors: ["sam"] }),
-      makeStudent({ id: "sam", name: "Sam" }),
-      makeStudent({ id: "jordan", name: "Jordan" }),
+    const attendees = [
+      makeAttendee({ id: "maya", name: "Maya", togetherIds: ["sam"] }),
+      makeAttendee({ id: "sam", name: "Sam" }),
+      makeAttendee({ id: "jordan", name: "Jordan" }),
     ];
 
     const result = optimizeSeatSwaps({
-      students,
+      attendees,
       assignments: {
         "1,1": "maya",
         "1,2": "jordan",
@@ -88,15 +88,15 @@ describe("optimizeSeatSwaps", () => {
   });
 
   it("stops at the max iteration cap", () => {
-    const students = [
-      makeStudent({ id: "a", name: "A", peerTutors: ["b"] }),
-      makeStudent({ id: "b", name: "B" }),
-      makeStudent({ id: "c", name: "C", peerTutors: ["d"] }),
-      makeStudent({ id: "d", name: "D" }),
+    const attendees = [
+      makeAttendee({ id: "a", name: "A", togetherIds: ["b"] }),
+      makeAttendee({ id: "b", name: "B" }),
+      makeAttendee({ id: "c", name: "C", togetherIds: ["d"] }),
+      makeAttendee({ id: "d", name: "D" }),
     ];
 
     const result = optimizeSeatSwaps({
-      students,
+      attendees,
       assignments: {
         "1,1": "a",
         "1,2": "c",
@@ -111,14 +111,14 @@ describe("optimizeSeatSwaps", () => {
   });
 
   it("recalculates relationship explanations after swaps", () => {
-    const students = [
-      makeStudent({ id: "maya", name: "Maya", peerTutors: ["sam"] }),
-      makeStudent({ id: "sam", name: "Sam" }),
-      makeStudent({ id: "jordan", name: "Jordan" }),
+    const attendees = [
+      makeAttendee({ id: "maya", name: "Maya", togetherIds: ["sam"] }),
+      makeAttendee({ id: "sam", name: "Sam" }),
+      makeAttendee({ id: "jordan", name: "Jordan" }),
     ];
 
     const result = optimizeSeatSwaps({
-      students,
+      attendees,
       assignments: {
         "1,1": "maya",
         "1,2": "jordan",

@@ -1,22 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import type { Student } from "@/lib/types/student";
-import { StudentsRoster } from "./students-roster";
+import type { Attendee } from "@/lib/types/attendee";
+import { AttendeesRoster } from "./attendees-roster";
 
 vi.mock("@/lib/cohorts/actions", () => ({
   listCohorts: vi.fn(async () => []),
 }));
 
-function makeStudent(overrides: Partial<Student> = {}): Student {
+function makeAttendee(overrides: Partial<Attendee> = {}): Attendee {
   return {
     id: "11111111-1111-4111-8111-111111111111",
     userId: "user-1",
     name: "Maya Chen",
     prosocialTraits: ["helpful"],
     antisocialTraits: ["talkative"],
-    accommodations: ["front_of_room"],
-    peerTutors: [],
-    avoid: [],
+    constraints: ["front_of_room"],
+    togetherIds: [],
+    separateIds: [],
     notes: "Prefers predictable routines.",
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-02T00:00:00.000Z",
@@ -24,30 +24,30 @@ function makeStudent(overrides: Partial<Student> = {}): Student {
   };
 }
 
-describe("StudentsRoster", () => {
-  it("opens the add student modal", () => {
-    render(<StudentsRoster students={[]} />);
+describe("AttendeesRoster", () => {
+  it("opens the add attendee modal", () => {
+    render(<AttendeesRoster attendees={[]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /add student/i }));
+    fireEvent.click(screen.getByRole("button", { name: /add attendee/i }));
 
     const dialog = screen.getByRole("dialog");
     expect(
-      within(dialog).getByRole("heading", { name: /add student/i }),
+      within(dialog).getByRole("heading", { name: /add attendee/i }),
     ).toBeInTheDocument();
     expect(within(dialog).getByLabelText(/name/i)).toHaveValue("");
     expect(
-      within(dialog).getByRole("button", { name: /add student/i }),
+      within(dialog).getByRole("button", { name: /add attendee/i }),
     ).toBeInTheDocument();
   });
 
   it("opens the edit modal with existing values checked", () => {
-    render(<StudentsRoster students={[makeStudent()]} />);
+    render(<AttendeesRoster attendees={[makeAttendee()]} />);
 
     fireEvent.click(screen.getAllByRole("button", { name: /edit/i })[0]);
 
     const dialog = screen.getByRole("dialog");
     expect(
-      within(dialog).getByRole("heading", { name: /edit student/i }),
+      within(dialog).getByRole("heading", { name: /edit attendee/i }),
     ).toBeInTheDocument();
     expect(within(dialog).getByLabelText(/name/i)).toHaveValue("Maya Chen");
     expect(within(dialog).getByLabelText(/helpful/i)).toBeChecked();
@@ -58,21 +58,21 @@ describe("StudentsRoster", () => {
     );
   });
 
-  it("checks existing peer tutor and avoid relationships on edit", () => {
+  it("checks existing peer tutor and separateIds relationships on edit", () => {
     render(
-      <StudentsRoster
-        students={[
-          makeStudent({
+      <AttendeesRoster
+        attendees={[
+          makeAttendee({
             id: "11111111-1111-4111-8111-111111111111",
             name: "Maya Chen",
-            peerTutors: ["22222222-2222-4222-8222-222222222222"],
-            avoid: ["33333333-3333-4333-8333-333333333333"],
+            togetherIds: ["22222222-2222-4222-8222-222222222222"],
+            separateIds: ["33333333-3333-4333-8333-333333333333"],
           }),
-          makeStudent({
+          makeAttendee({
             id: "22222222-2222-4222-8222-222222222222",
             name: "Sam Patel",
           }),
-          makeStudent({
+          makeAttendee({
             id: "33333333-3333-4333-8333-333333333333",
             name: "Jordan Lee",
           }),
@@ -87,19 +87,19 @@ describe("StudentsRoster", () => {
       within(dialog).getByLabelText(/sam patel as peer tutor/i),
     ).toBeChecked();
     expect(
-      within(dialog).getByLabelText(/jordan lee on avoid list/i),
+      within(dialog).getByLabelText(/jordan lee on separateIds list/i),
     ).toBeChecked();
   });
 
-  it("does not show the current student as a relationship option", () => {
+  it("does not show the current attendee as a relationship option", () => {
     render(
-      <StudentsRoster
-        students={[
-          makeStudent({
+      <AttendeesRoster
+        attendees={[
+          makeAttendee({
             id: "11111111-1111-4111-8111-111111111111",
             name: "Maya Chen",
           }),
-          makeStudent({
+          makeAttendee({
             id: "22222222-2222-4222-8222-222222222222",
             name: "Sam Patel",
           }),
@@ -118,15 +118,15 @@ describe("StudentsRoster", () => {
     ).toBeInTheDocument();
   });
 
-  it("keeps peer tutor and avoid choices mutually exclusive", () => {
+  it("keeps peer tutor and separateIds choices mutually exclusive", () => {
     render(
-      <StudentsRoster
-        students={[
-          makeStudent({
+      <AttendeesRoster
+        attendees={[
+          makeAttendee({
             id: "11111111-1111-4111-8111-111111111111",
             name: "Maya Chen",
           }),
-          makeStudent({
+          makeAttendee({
             id: "22222222-2222-4222-8222-222222222222",
             name: "Sam Patel",
           }),
@@ -138,31 +138,31 @@ describe("StudentsRoster", () => {
 
     const dialog = screen.getByRole("dialog");
     const peerTutor = within(dialog).getByLabelText(/sam patel as peer tutor/i);
-    const avoid = within(dialog).getByLabelText(/sam patel on avoid list/i);
+    const separateIds = within(dialog).getByLabelText(/sam patel on separateIds list/i);
 
     fireEvent.click(peerTutor);
 
     expect(peerTutor).toBeChecked();
-    expect(avoid).toBeDisabled();
+    expect(separateIds).toBeDisabled();
   });
 
   it("closes the modal when Cancel is clicked", () => {
-    render(<StudentsRoster students={[]} />);
+    render(<AttendeesRoster attendees={[]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /add student/i }));
+    fireEvent.click(screen.getByRole("button", { name: /add attendee/i }));
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("opens the CSV import modal", () => {
-    render(<StudentsRoster students={[]} />);
+    render(<AttendeesRoster attendees={[]} />);
 
     fireEvent.click(screen.getByRole("button", { name: /import csv/i }));
 
     const dialog = screen.getByRole("dialog");
     expect(
-      within(dialog).getByRole("heading", { name: /import students from csv/i }),
+      within(dialog).getByRole("heading", { name: /import attendees from csv/i }),
     ).toBeInTheDocument();
     expect(within(dialog).getByLabelText(/csv file/i)).toHaveAttribute(
       "type",
@@ -171,11 +171,11 @@ describe("StudentsRoster", () => {
   });
 
   it("links to CSV export", () => {
-    render(<StudentsRoster students={[]} />);
+    render(<AttendeesRoster attendees={[]} />);
 
     expect(screen.getByRole("link", { name: /export csv/i })).toHaveAttribute(
       "href",
-      "/students/export",
+      "/attendees/export",
     );
   });
 });

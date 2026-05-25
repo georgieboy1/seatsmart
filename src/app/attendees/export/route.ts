@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { rowToStudent, type StudentRow } from "@/lib/students/db";
-import { serializeStudentsCsv } from "@/lib/students/csv";
+import { rowToAttendee, type AttendeeRow } from "@/lib/attendees/db";
+import { serializeAttendeesCsv } from "@/lib/attendees/csv";
 
 export const dynamic = "force-dynamic";
 
@@ -16,22 +16,22 @@ export async function GET(request: Request) {
   }
 
   const { data, error } = await supabase
-    .from("students")
+    .from("attendees")
     .select("*")
     .eq("user_id", user.id)
     .order("name", { ascending: true });
 
   if (error) {
     return NextResponse.redirect(
-      new URL(`/students?error=${encodeURIComponent(error.message)}`, request.url),
+      new URL(`/attendees?error=${encodeURIComponent(error.message)}`, request.url),
     );
   }
 
-  const csv = serializeStudentsCsv((data as StudentRow[]).map(rowToStudent));
+  const csv = serializeAttendeesCsv((data as AttendeeRow[]).map(rowToAttendee));
 
   return new Response(csv, {
     headers: {
-      "Content-Disposition": 'attachment; filename="seatsmart-students.csv"',
+      "Content-Disposition": 'attachment; filename="seatsmart-attendees.csv"',
       "Content-Type": "text/csv; charset=utf-8",
     },
   });

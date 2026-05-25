@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { ClassroomLayout } from "@/lib/types/layout";
-import type { Student } from "@/lib/types/student";
+import type { Attendee } from "@/lib/types/attendee";
 import {
-  scoreAccommodationFit,
+  scoreDietaryAccessibilityFit,
   scoreRelationshipPair,
   scoreSeatingRelationships,
 } from "./scoring";
@@ -16,23 +16,23 @@ function makeLayout(grid: ClassroomLayout["grid"]): ClassroomLayout {
     rows: null,
     columns: null,
     numGroups: null,
-    studentsPerGroup: null,
+    attendeesPerGroup: null,
     grid,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-02T00:00:00.000Z",
   };
 }
 
-function makeStudent(overrides: Partial<Student> = {}): Student {
+function makeAttendee(overrides: Partial<Attendee> = {}): Attendee {
   return {
-    id: "student-1",
+    id: "attendee-1",
     userId: "user-1",
     name: "Maya Chen",
     prosocialTraits: [],
     antisocialTraits: [],
-    accommodations: [],
-    peerTutors: [],
-    avoid: [],
+    constraints: [],
+    togetherIds: [],
+    separateIds: [],
     notes: null,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-02T00:00:00.000Z",
@@ -40,17 +40,17 @@ function makeStudent(overrides: Partial<Student> = {}): Student {
   };
 }
 
-describe("scoreAccommodationFit", () => {
+describe("scoreDietaryAccessibilityFit", () => {
   it("rewards seats near requested features", () => {
     const layout = makeLayout([
       ["perimeter", "door", "perimeter"],
       ["perimeter", "seat", "seat"],
       ["perimeter", "teacher_desk", "perimeter"],
     ]);
-    const student = makeStudent({ accommodations: ["near_door"] });
+    const attendee = makeAttendee({ constraints: ["near_door"] });
 
-    const near = scoreAccommodationFit(student, layout, { row: 1, column: 1 });
-    const far = scoreAccommodationFit(student, layout, { row: 2, column: 2 });
+    const near = scoreDietaryAccessibilityFit(attendee, layout, { row: 1, column: 1 });
+    const far = scoreDietaryAccessibilityFit(attendee, layout, { row: 2, column: 2 });
 
     expect(near.score).toBeGreaterThan(far.score);
     expect(near.explanations[0].rule).toBe("near_door");
@@ -61,39 +61,39 @@ describe("scoreAccommodationFit", () => {
       ["window", "perimeter", "perimeter", "perimeter"],
       ["seat", "seat", "seat", "seat"],
     ]);
-    const student = makeStudent({ accommodations: ["away_from_window"] });
+    const attendee = makeAttendee({ constraints: ["away_from_window"] });
 
-    const near = scoreAccommodationFit(student, layout, { row: 1, column: 0 });
-    const far = scoreAccommodationFit(student, layout, { row: 1, column: 3 });
+    const near = scoreDietaryAccessibilityFit(attendee, layout, { row: 1, column: 0 });
+    const far = scoreDietaryAccessibilityFit(attendee, layout, { row: 1, column: 3 });
 
     expect(far.score).toBeGreaterThan(near.score);
   });
 
-  it("rewards front-of-room accommodations in lower row indexes", () => {
+  it("rewards front-of-room constraints in lower row indexes", () => {
     const layout = makeLayout([["seat"], ["seat"], ["seat"]]);
-    const student = makeStudent({ accommodations: ["vision_front"] });
+    const attendee = makeAttendee({ constraints: ["vision_front"] });
 
-    expect(scoreAccommodationFit(student, layout, { row: 0, column: 0 }).score)
+    expect(scoreDietaryAccessibilityFit(attendee, layout, { row: 0, column: 0 }).score)
       .toBeGreaterThan(
-        scoreAccommodationFit(student, layout, { row: 2, column: 0 }).score,
+        scoreDietaryAccessibilityFit(attendee, layout, { row: 2, column: 0 }).score,
       );
   });
 
-  it("scores hearing accommodations by room side", () => {
+  it("scores hearing constraints by room side", () => {
     const layout = makeLayout([["seat", "seat", "seat", "seat"]]);
-    const student = makeStudent({ accommodations: ["hearing_right"] });
+    const attendee = makeAttendee({ constraints: ["hearing_right"] });
 
-    expect(scoreAccommodationFit(student, layout, { row: 0, column: 3 }).score)
+    expect(scoreDietaryAccessibilityFit(attendee, layout, { row: 0, column: 3 }).score)
       .toBeGreaterThan(
-        scoreAccommodationFit(student, layout, { row: 0, column: 0 }).score,
+        scoreDietaryAccessibilityFit(attendee, layout, { row: 0, column: 0 }).score,
       );
   });
 
   it("penalizes missing requested features", () => {
     const layout = makeLayout([["seat"]]);
-    const student = makeStudent({ accommodations: ["near_charging"] });
+    const attendee = makeAttendee({ constraints: ["near_charging"] });
 
-    const result = scoreAccommodationFit(student, layout, { row: 0, column: 0 });
+    const result = scoreDietaryAccessibilityFit(attendee, layout, { row: 0, column: 0 });
 
     expect(result.score).toBeLessThan(0);
     expect(result.explanations[0].reason).toMatch(/no charging station/i);
@@ -102,12 +102,12 @@ describe("scoreAccommodationFit", () => {
 
 describe("scoreRelationshipPair", () => {
   it("scores adjacent peer tutors positively", () => {
-    const a = makeStudent({
+    const a = makeAttendee({
       id: "a",
       name: "Maya",
-      peerTutors: ["b"],
+      togetherIds: ["b"],
     });
-    const b = makeStudent({ id: "b", name: "Sam" });
+    const b = makeAttendee({ id: "b", name: "Sam" });
 
     const result = scoreRelationshipPair(
       a,
@@ -120,9 +120,9 @@ describe("scoreRelationshipPair", () => {
     expect(result.explanations[0].rule).toBe("peer_tutor_adjacency");
   });
 
-  it("scores adjacent avoid-list students strongly negative", () => {
-    const a = makeStudent({ id: "a", name: "Maya", avoid: ["b"] });
-    const b = makeStudent({ id: "b", name: "Sam" });
+  it("scores adjacent separateIds-list attendees strongly negative", () => {
+    const a = makeAttendee({ id: "a", name: "Maya", separateIds: ["b"] });
+    const b = makeAttendee({ id: "b", name: "Sam" });
 
     expect(
       scoreRelationshipPair(
@@ -135,12 +135,12 @@ describe("scoreRelationshipPair", () => {
   });
 
   it("penalizes antisocial adjacency and rewards peer modeling", () => {
-    const prosocial = makeStudent({
+    const prosocial = makeAttendee({
       id: "a",
       name: "Maya",
       prosocialTraits: ["helpful"],
     });
-    const antisocial = makeStudent({
+    const antisocial = makeAttendee({
       id: "b",
       name: "Sam",
       antisocialTraits: ["talkative"],
@@ -166,8 +166,8 @@ describe("scoreRelationshipPair", () => {
   });
 
   it("ignores non-adjacent pairs", () => {
-    const a = makeStudent({ id: "a", peerTutors: ["b"] });
-    const b = makeStudent({ id: "b" });
+    const a = makeAttendee({ id: "a", togetherIds: ["b"] });
+    const b = makeAttendee({ id: "b" });
 
     expect(
       scoreRelationshipPair(
@@ -182,13 +182,13 @@ describe("scoreRelationshipPair", () => {
 
 describe("scoreSeatingRelationships", () => {
   it("aggregates relationship scores across assignments", () => {
-    const students = [
-      makeStudent({ id: "a", name: "Maya", peerTutors: ["b"] }),
-      makeStudent({ id: "b", name: "Sam" }),
-      makeStudent({ id: "c", name: "Jordan" }),
+    const attendees = [
+      makeAttendee({ id: "a", name: "Maya", togetherIds: ["b"] }),
+      makeAttendee({ id: "b", name: "Sam" }),
+      makeAttendee({ id: "c", name: "Jordan" }),
     ];
 
-    const result = scoreSeatingRelationships(students, {
+    const result = scoreSeatingRelationships(attendees, {
       "1,1": "a",
       "1,2": "b",
       "4,4": "c",

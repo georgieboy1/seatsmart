@@ -18,7 +18,7 @@ export type ClassroomLayout = {
   rows: number | null;
   columns: number | null;
   numGroups: number | null;
-  studentsPerGroup: number | null;
+  attendeesPerGroup: number | null;
   grid: CellType[][];
   createdAt: string;
   updatedAt: string;

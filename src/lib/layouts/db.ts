@@ -12,7 +12,7 @@ export type LayoutRow = {
   rows: number | null;
   columns: number | null;
   num_groups: number | null;
-  students_per_group: number | null;
+  attendees_per_group: number | null;
   grid: CellType[][];
   created_at: string;
   updated_at: string;
@@ -29,7 +29,7 @@ export function rowToLayout(row: LayoutRow): ClassroomLayout {
     rows: row.rows,
     columns: row.columns,
     numGroups: row.num_groups,
-    studentsPerGroup: row.students_per_group,
+    attendeesPerGroup: row.attendees_per_group,
     grid: row.grid,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -47,7 +47,7 @@ export function layoutToInsert(
     rows: layout.rows,
     columns: layout.columns,
     num_groups: layout.numGroups,
-    students_per_group: layout.studentsPerGroup,
+    attendees_per_group: layout.attendeesPerGroup,
     grid: layout.grid,
   };
 }

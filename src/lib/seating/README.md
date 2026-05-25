@@ -6,7 +6,7 @@ The public API is:
 
 ```ts
 generateSeating(
-  students: Student[],
+  attendees: Attendee[],
   classroom: ClassroomLayout,
   options: GenerationOptions,
 ): SeatingResult
@@ -20,14 +20,14 @@ run from a server action, route handler, unit test, or future worker.
 
 SeatSmart uses greedy placement plus local search.
 
-Classroom rosters are small: usually 20-35 students. That is too big for
+Classroom rosters are small: usually 20-35 attendees. That is too big for
 exhaustive search, but small enough that we can score many candidate seats and
 try pairwise swaps quickly. A full optimization solver or ML model would add
 complexity without giving teachers a clearer result.
 
 The current implementation is deterministic. `GenerationOptions.seed` exists so
 the public API is ready for seeded random tie-breaking later, but today the code
-uses stable sorting by score, student name, and seat key. The same inputs produce
+uses stable sorting by score, attendee name, and seat key. The same inputs produce
 the same output.
 
 ## Data Shape
@@ -36,7 +36,7 @@ Assignments use seat keys:
 
 ```ts
 {
-  "2,4": "student-id"
+  "2,4": "attendee-id"
 }
 ```
 
@@ -71,30 +71,30 @@ type SeatingResult = {
 ```
 
 These explanations are meant for teacher-facing UI: seat tooltips, issue panels,
-and future "why did this student land here?" views.
+and future "why did this attendee land here?" views.
 
-## Phase 1: Accommodation Placement
+## Phase 1: DietaryAccessibility Placement
 
 File: `phase1.ts`
 
-`placeAccommodationStudents()` places students with accommodations before the
+`placeDietaryAccessibilityAttendees()` places attendees with constraints before the
 general roster.
 
-Students are ordered by:
+Attendees are ordered by:
 
-1. More accommodations first.
-2. Student name as a deterministic tie-breaker.
+1. More constraints first.
+2. Attendee name as a deterministic tie-breaker.
 
-Each accommodated student is scored against every available seat with
-`scoreAccommodationFit()`. The best available seat is chosen.
+Each accommodated attendee is scored against every available seat with
+`scoreDietaryAccessibilityFit()`. The best available seat is chosen.
 
-Accommodation scoring considers:
+DietaryAccessibility scoring considers:
 
 - Distance to door, teacher desk, charging station, or window.
 - Front of room for `front_of_room` and `vision_front`.
 - Left/right side of room for `hearing_left` and `hearing_right`.
 
-If no perfect seat exists, the student is still placed when possible and a
+If no perfect seat exists, the attendee is still placed when possible and a
 warning is added to `issues`. This matches the product rule: never fail the
 whole chart just because one constraint cannot be fully satisfied.
 
@@ -105,21 +105,21 @@ with a warning.
 
 File: `phase2.ts`
 
-`placeRemainingStudents()` fills the remaining available seats with students who
+`placeRemainingAttendees()` fills the remaining available seats with attendees who
 were not placed in Phase 1.
 
-On each pass, it evaluates every remaining student against every available seat.
-The score is based on relationships to students already placed:
+On each pass, it evaluates every remaining attendee against every available seat.
+The score is based on relationships to attendees already placed:
 
 - `+10` if adjacent to a peer tutor.
-- `-50` if adjacent to someone on either student's avoid list.
-- `-5` if adjacent to another student with antisocial traits.
+- `-50` if adjacent to someone on either attendee's separateIds list.
+- `-5` if adjacent to another attendee with antisocial traits.
 - `+3` for peer modeling: prosocial traits adjacent to antisocial traits.
 
-The best student-seat pair is placed, then the process repeats. Ties are broken
-by student name and then seat key.
+The best attendee-seat pair is placed, then the process repeats. Ties are broken
+by attendee name and then seat key.
 
-If there are more students than seats, the extra students are not placed and the
+If there are more attendees than seats, the extra attendees are not placed and the
 result includes warning issues.
 
 ## Phase 3: Local Swap Optimization
@@ -127,7 +127,7 @@ result includes warning issues.
 File: `phase3.ts`
 
 `optimizeSeatSwaps()` improves the Phase 1 + Phase 2 output by trying pairwise
-student swaps.
+attendee swaps.
 
 For each iteration:
 
@@ -138,7 +138,7 @@ For each iteration:
 
 Default max iterations: `100`.
 
-Locked seats are excluded from the swappable set, so manually locked students do
+Locked seats are excluded from the swappable set, so manually locked attendees do
 not move.
 
 After optimization, relationship explanations are recalculated and merged with
@@ -150,10 +150,10 @@ File: `scoring.ts`
 
 Important functions:
 
-- `scoreAccommodationFit(student, layout, position)`
+- `scoreDietaryAccessibilityFit(attendee, layout, position)`
 - `scoreRelationshipPair(a, aPosition, b, bPosition)`
-- `scoreSeatingRelationships(students, assignments)`
-- `explainAssignments(students, assignments)`
+- `scoreSeatingRelationships(attendees, assignments)`
+- `explainAssignments(attendees, assignments)`
 
 The relationship weights match `docs/SPEC.md`:
 
@@ -161,8 +161,8 @@ The relationship weights match `docs/SPEC.md`:
 |---|---:|
 | Peer tutor adjacency | `+10` |
 | Avoid-list adjacency | `-50` |
-| Two antisocial-traited students adjacent | `-5` |
-| Prosocial student adjacent to antisocial student | `+3` |
+| Two antisocial-traited attendees adjacent | `-5` |
+| Prosocial attendee adjacent to antisocial attendee | `+3` |
 
 The final public `score` is clamped from `0` to `100`. It starts from `100`,
 adds the relationship score, then subtracts `5` points per warning/error issue.
@@ -191,7 +191,7 @@ places to update.
 
 ```ts
 type GenerationOptions = {
-  honorAccommodations: boolean;
+  honorDietaryAccessibilitys: boolean;
   respectPeerTutors: boolean;
   respectAvoidList: boolean;
   spreadAntisocialTraits: boolean;
@@ -202,9 +202,9 @@ type GenerationOptions = {
 
 Current behavior:
 
-- `honorAccommodations`: when false, Phase 1 treats all students as if they have
-  no accommodations.
-- `respectAvoidList`: when true, final avoid-list adjacency issues are emitted.
+- `honorDietaryAccessibilitys`: when false, Phase 1 treats all attendees as if they have
+  no constraints.
+- `respectAvoidList`: when true, final separateIds-list adjacency issues are emitted.
 - `lockedSeats`: preserved through all phases and excluded from swap
   optimization.
 - `seed`: accepted but not yet used because the algorithm has no random
@@ -219,8 +219,8 @@ the chart UI exposes generation options.
 The public API tests in `generate.test.ts` cover the v1.0 spec requirements:
 
 - Empty classroom returns no assignments.
-- More students than seats places the maximum possible and reports overflow.
-- All students needing the same accommodation is handled gracefully.
+- More attendees than seats places the maximum possible and reports overflow.
+- All attendees needing the same accommodation is handled gracefully.
 - Avoid lists are respected when possible.
 - Locked seats are never reassigned.
 - Same inputs plus same seed produce the same output.
@@ -235,7 +235,7 @@ Phase-specific tests cover the lower-level details:
 
 ## Known v1.0 Tradeoffs
 
-- Accommodation placement is greedy, not globally optimal. This is acceptable
+- DietaryAccessibility placement is greedy, not globally optimal. This is acceptable
   for classroom-sized inputs and much easier to explain.
 - Final score is intentionally simple. It is a comparison aid, not a claim that
   one chart is objectively "92% good."

@@ -21,10 +21,10 @@ describe("Chart Schemas", () => {
 
     it("validates assignments record", () => {
       const result = chartUpdateSchema.safeParse({ 
-        assignments: { "seat-0-0": "student-1" } 
+        assignments: { "seat-0-0": "attendee-1" } 
       });
       expect(result.success).toBe(true);
-      expect(result.data?.assignments).toEqual({ "seat-0-0": "student-1" });
+      expect(result.data?.assignments).toEqual({ "seat-0-0": "attendee-1" });
     });
 
     it("rejects invalid score type", () => {

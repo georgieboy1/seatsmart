@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { TerminologyProvider } from "@/components/providers/terminology-provider";
+import { getProfile } from "@/lib/attendees/profile";
 import Link from "next/link";
 import { AlertCircle } from "lucide-react";
 import "./globals.css";
@@ -17,14 +19,17 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "SeatSmart",
-  description: "Classroom seating, automated.",
+  description: "Event & Wedding seating, automated.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const profile = await getProfile();
+  const workspaceType = profile?.workspaceType ?? "education";
+
   return (
     <html
       lang="en"
@@ -41,11 +46,13 @@ export default function RootLayout({
             <span>SeatSmart is optimized for desktop. Some features may be limited on mobile.</span>
           </div>
         </div>
-        <TooltipProvider>
-          <div className="flex-1 flex flex-col">
-            {children}
-          </div>
-        </TooltipProvider>
+        <TerminologyProvider workspaceType={workspaceType}>
+          <TooltipProvider>
+            <div className="flex-1 flex flex-col">
+              {children}
+            </div>
+          </TooltipProvider>
+        </TerminologyProvider>
         <footer className="border-t py-6 text-center text-xs text-muted-foreground bg-muted/20">
           <div className="container mx-auto flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-6">
             <p>© 2026 SeatSmart</p>

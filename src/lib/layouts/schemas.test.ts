@@ -10,7 +10,7 @@ describe("layoutCreateSchema", () => {
       rows: 5,
       columns: 6,
       numGroups: null,
-      studentsPerGroup: null,
+      attendeesPerGroup: null,
       grid: createTraditionalGrid(5, 6),
     });
     expect(result.success).toBe(true);
@@ -23,7 +23,7 @@ describe("layoutCreateSchema", () => {
       rows: null,
       columns: null,
       numGroups: 4,
-      studentsPerGroup: 4,
+      attendeesPerGroup: 4,
       grid: createGroupsGrid(4, 4),
     });
     expect(result.success).toBe(true);
@@ -36,7 +36,7 @@ describe("layoutCreateSchema", () => {
       rows: 5,
       columns: 5,
       numGroups: null,
-      studentsPerGroup: null,
+      attendeesPerGroup: null,
       grid: createTraditionalGrid(5, 5),
     });
     expect(result.success).toBe(false);
@@ -49,7 +49,7 @@ describe("layoutCreateSchema", () => {
       rows: 5,
       columns: 5,
       numGroups: null,
-      studentsPerGroup: null,
+      attendeesPerGroup: null,
       grid: createTraditionalGrid(5, 5),
     });
     expect(result.success).toBe(true);
@@ -63,7 +63,7 @@ describe("layoutCreateSchema", () => {
       rows: 11,
       columns: 5,
       numGroups: null,
-      studentsPerGroup: null,
+      attendeesPerGroup: null,
       grid: createTraditionalGrid(10, 5),
     });
     expect(result.success).toBe(false);
@@ -76,7 +76,7 @@ describe("layoutCreateSchema", () => {
       rows: null,
       columns: null,
       numGroups: 13,
-      studentsPerGroup: 4,
+      attendeesPerGroup: 4,
       grid: createGroupsGrid(12, 4),
     });
     expect(result.success).toBe(false);
@@ -89,7 +89,7 @@ describe("layoutCreateSchema", () => {
       rows: 5,
       columns: 5,
       numGroups: 4,
-      studentsPerGroup: 4,
+      attendeesPerGroup: 4,
       grid: createTraditionalGrid(5, 5),
     });
     expect(result.success).toBe(false);
@@ -102,7 +102,7 @@ describe("layoutCreateSchema", () => {
       rows: 2,
       columns: 2,
       numGroups: null,
-      studentsPerGroup: null,
+      attendeesPerGroup: null,
       grid: [
         ["perimeter", "perimeter", "perimeter"],
         ["perimeter", "seat", "perimeter", "perimeter"],
@@ -119,7 +119,7 @@ describe("layoutCreateSchema", () => {
       rows: 1,
       columns: 1,
       numGroups: null,
-      studentsPerGroup: null,
+      attendeesPerGroup: null,
       grid: [
         ["perimeter", "perimeter", "perimeter"],
         ["perimeter", "magic", "perimeter"],

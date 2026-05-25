@@ -26,7 +26,7 @@ export function LayoutsList({ layouts }: { layouts: ClassroomLayout[] }) {
             <p className="text-sm text-muted-foreground">
               {layout.type === "traditional"
                 ? `${layout.rows ?? 0} × ${layout.columns ?? 0} traditional`
-                : `${layout.numGroups ?? 0} groups of ${layout.studentsPerGroup ?? 0}`}
+                : `${layout.numGroups ?? 0} groups of ${layout.attendeesPerGroup ?? 0}`}
             </p>
           </Link>
         </li>

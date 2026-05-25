@@ -16,28 +16,28 @@ import {
 } from "@dnd-kit/sortable";
 import { useState } from "react";
 import type { ClassroomLayout, CellType } from "@/lib/types/layout";
-import type { Student } from "@/lib/types/student";
+import type { Attendee } from "@/lib/types/attendee";
 import type { SeatExplanation } from "@/lib/seating/types";
 import { CELL_META } from "@/components/layout-builder/cell-meta";
 import { SeatItem } from "./seat-item";
 
 type Props = {
   layout: ClassroomLayout;
-  students: Student[];
-  unassignedStudents: Student[];
+  attendees: Attendee[];
+  unassignedAttendees: Attendee[];
   assignments: Record<string, string>;
   lockedSeats: Record<string, string>;
   explanations: Record<string, SeatExplanation[]>;
   onSwap: (fromSeatKey: string, toSeatKey: string) => void;
   onLockToggle: (seatKey: string) => void;
   onClear: (seatKey: string) => void;
-  onAssign: (seatKey: string, studentId: string) => void;
+  onAssign: (seatKey: string, attendeeId: string) => void;
 };
 
 export function SeatingChartGrid({
   layout,
-  students,
-  unassignedStudents,
+  attendees,
+  unassignedAttendees,
   assignments,
   lockedSeats,
   explanations,
@@ -47,7 +47,7 @@ export function SeatingChartGrid({
   onAssign,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
-  const studentsById = new Map(students.map((s) => [s.id, s]));
+  const attendeesById = new Map(attendees.map((g) => [g.id, g]));
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -78,16 +78,16 @@ export function SeatingChartGrid({
     // See positionKey() in src/lib/seating/geometry.ts.
     const seatKey = `${r},${c}`;
     if (cell === "seat") {
-      const studentId = assignments[seatKey];
-      const student = studentId ? studentsById.get(studentId) : undefined;
+      const attendeeId = assignments[seatKey];
+      const attendee = attendeeId ? attendeesById.get(attendeeId) : undefined;
       const isLocked = !!lockedSeats[seatKey];
 
       return (
         <SeatItem
           key={seatKey}
           seatKey={seatKey}
-          student={student}
-          unassignedStudents={unassignedStudents}
+          attendee={attendee}
+          unassignedAttendees={unassignedAttendees}
           isLocked={isLocked}
           explanations={explanations[seatKey]}
           onLockToggle={onLockToggle}
@@ -120,7 +120,7 @@ export function SeatingChartGrid({
       <div
         id="seating-chart-grid"
         role="grid"
-        aria-label="Interactive seating chart grid. Drag students to swap seats."
+        aria-label="Interactive seating chart grid. Drag attendees to swap seats."
         className="inline-grid gap-1 p-4 bg-muted/20 rounded-xl border"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 3.5rem))` }}
       >
@@ -132,7 +132,7 @@ export function SeatingChartGrid({
           <div className="w-14 h-14 bg-primary/20 border-2 border-primary rounded-md flex items-center justify-center animate-pulse">
              <div className="w-full h-full bg-card rounded p-1 shadow-xl scale-110 border-2 border-primary">
                 <span className="text-[10px] font-bold">
-                  {studentsById.get(assignments[activeId])?.name}
+                  {attendeesById.get(assignments[activeId])?.name}
                 </span>
              </div>
           </div>

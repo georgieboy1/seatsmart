@@ -1,15 +1,15 @@
 import type { ClassroomLayout } from "@/lib/types/layout";
-import type { Student } from "@/lib/types/student";
+import type { Attendee } from "@/lib/types/attendee";
 import { parsePositionKey } from "./geometry";
-import { placeAccommodationStudents } from "./phase1";
-import { placeRemainingStudents } from "./phase2";
+import { placeDietaryAccessibilityAttendees } from "./phase1";
+import { placeRemainingAttendees } from "./phase2";
 import { optimizeSeatSwaps } from "./phase3";
 import type { GenerationOptions, SeatingIssue, SeatingResult } from "./types";
 
 const DEFAULT_OPTIONS: GenerationOptions = {
-  honorAccommodations: true,
-  respectPeerTutors: true,
-  respectAvoidList: true,
+  honorDietaryAccessibility: true,
+  respectMustSitTogether: true,
+  respectStrictlySeparate: true,
   spreadAntisocialTraits: true,
   lockedSeats: {},
   seed: 0,
@@ -32,46 +32,46 @@ function mergeOptions(options: GenerationOptions): GenerationOptions {
   };
 }
 
-function studentsForPhase1(
-  students: Student[],
+function attendeesForPhase1(
+  attendees: Attendee[],
   options: GenerationOptions,
-): Student[] {
-  if (options.honorAccommodations) {
-    return students;
+): Attendee[] {
+  if (options.honorDietaryAccessibility) {
+    return attendees;
   }
 
-  return students.map((student) => ({ ...student, accommodations: [] }));
+  return attendees.map((attendee) => ({ ...attendee, constraints: [] }));
 }
 
-function avoidViolationIssues(
-  students: Student[],
+function separateIdsViolationIssues(
+  attendees: Attendee[],
   assignments: Record<string, string>,
 ): SeatingIssue[] {
-  const studentsById = new Map(students.map((student) => [student.id, student]));
-  const placed = Object.entries(assignments).map(([seatKey, studentId]) => ({
+  const attendeesById = new Map(attendees.map((attendee) => [attendee.id, attendee]));
+  const placed = Object.entries(assignments).map(([seatKey, externalId]) => ({
     seatKey,
     position: parsePositionKey(seatKey),
-    student: studentsById.get(studentId),
+    attendee: attendeesById.get(externalId),
   }));
   const issues: SeatingIssue[] = [];
 
   for (let i = 0; i < placed.length; i += 1) {
     for (let j = i + 1; j < placed.length; j += 1) {
-      const a = placed[i].student;
-      const b = placed[j].student;
+      const a = placed[i].attendee;
+      const b = placed[j].attendee;
       if (!a || !b) continue;
 
       const adjacent =
         Math.abs(placed[i].position.row - placed[j].position.row) <= 1 &&
         Math.abs(placed[i].position.column - placed[j].position.column) <= 1 &&
         placed[i].seatKey !== placed[j].seatKey;
-      const avoidMatch = a.avoid.includes(b.id) || b.avoid.includes(a.id);
+      const separateIdsMatch = a.separateIds.includes(b.id) || b.separateIds.includes(a.id);
 
-      if (adjacent && avoidMatch) {
+      if (adjacent && separateIdsMatch) {
         issues.push({
           severity: "warning",
-          message: `${a.name} and ${b.name} are on an avoid list but sit adjacent.`,
-          studentIds: [a.id, b.id],
+          message: `${a.name} and ${b.name} are on an separateIds list but sit adjacent.`,
+          externalIds: [a.id, b.id],
         });
       }
     }
@@ -81,31 +81,31 @@ function avoidViolationIssues(
 }
 
 export function generateSeating(
-  students: Student[],
+  attendees: Attendee[],
   classroom: ClassroomLayout,
   options: GenerationOptions,
 ): SeatingResult {
   const mergedOptions = mergeOptions(options);
   const phase1Started = performance.now();
-  const phase1 = placeAccommodationStudents(
-    studentsForPhase1(students, mergedOptions),
+  const phase1 = placeDietaryAccessibilityAttendees(
+    attendeesForPhase1(attendees, mergedOptions),
     classroom,
     mergedOptions.lockedSeats,
   );
   const phase1Time = performance.now() - phase1Started;
 
   const phase2Started = performance.now();
-  const phase2 = placeRemainingStudents({
-    students,
+  const phase2 = placeRemainingAttendees({
+    attendees,
     assignments: phase1.assignments,
-    placedStudentIds: phase1.placedStudentIds,
+    placedAttendeeIds: phase1.placedAttendeeIds,
     availableSeatKeys: phase1.availableSeatKeys,
     explanations: phase1.explanations,
   });
   const phase2Time = performance.now() - phase2Started;
 
   const phase3 = optimizeSeatSwaps({
-    students,
+    attendees,
     assignments: phase2.assignments,
     explanations: phase2.explanations,
     lockedSeatKeys: new Set(Object.keys(mergedOptions.lockedSeats ?? {})),
@@ -115,8 +115,8 @@ export function generateSeating(
   const issues = [
     ...phase1.issues,
     ...phase2.issues,
-    ...(mergedOptions.respectAvoidList
-      ? avoidViolationIssues(students, phase3.assignments)
+    ...(mergedOptions.respectStrictlySeparate
+      ? separateIdsViolationIssues(attendees, phase3.assignments)
       : []),
   ];
 

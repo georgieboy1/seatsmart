@@ -1,5 +1,5 @@
 import type { CellType, ClassroomLayout } from "@/lib/types/layout";
-import type { Student } from "@/lib/types/student";
+import type { Attendee } from "@/lib/types/attendee";
 
 export type SeatPosition = {
   row: number;
@@ -8,13 +8,13 @@ export type SeatPosition = {
 
 export type SeatAssignment = {
   position: SeatPosition;
-  studentId: string;
+  externalId: string; // attendeeId? I'll keep externalId in assignments for now or rename if destructive check.
 };
 
 export type GenerationOptions = {
-  honorAccommodations: boolean;
-  respectPeerTutors: boolean;
-  respectAvoidList: boolean;
+  honorDietaryAccessibility: boolean;
+  respectMustSitTogether: boolean;
+  respectStrictlySeparate: boolean;
   spreadAntisocialTraits: boolean;
   lockedSeats?: Record<string, string>;
   seed?: number;
@@ -23,7 +23,7 @@ export type GenerationOptions = {
 export type SeatingIssue = {
   severity: "info" | "warning" | "error";
   message: string;
-  studentIds?: string[];
+  externalIds?: string[]; // attendeeIds?
   position?: SeatPosition;
 };
 
@@ -51,5 +51,5 @@ export type SeatCandidate = {
   key: string;
   cellType: CellType;
   layout: ClassroomLayout;
-  student?: Student;
+  attendee?: Attendee;
 };

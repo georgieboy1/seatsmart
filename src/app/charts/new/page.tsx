@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { listStudents } from "@/lib/students/actions";
+import { listAttendees } from "@/lib/attendees/actions";
 import { listCohorts } from "@/lib/cohorts/actions";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,26 +32,30 @@ export default async function NewChartPage({
     redirect("/dashboard?error=Create+a+cohort+first");
   }
 
-  if (layoutId && cohortId) {
-    const [selectedLayout, students] = await Promise.all([
+  if (layoutId && cohortId !== undefined) {
+    const [selectedLayout, attendees, allCohorts] = await Promise.all([
       getLayout(layoutId),
-      listStudents(cohortId),
+      listAttendees(), // Get all attendees so we can filter in the view
+      listCohorts(),
     ]);
 
     if (!selectedLayout) {
       redirect("/charts/new?error=Layout+not+found");
     }
 
-    if (students.length < 2) {
-      redirect(`/charts/new?layoutId=${layoutId}&error=Need+at+least+2+students+in+this+cohort`);
+    // Still check if the specific cohort has enough attendees for initial generation
+    const cohortAttendees = attendees.filter(s => s.cohortId === (cohortId || null));
+    if (cohortAttendees.length < 2 && cohortId !== "") {
+      redirect(`/charts/new?layoutId=${layoutId}&error=Need+at+least+2+attendees+in+this+cohort`);
     }
     
     return (
       <main className="mx-auto max-w-7xl px-4 py-8">
         <SeatingChartView 
           layout={selectedLayout} 
-          students={students} 
-          cohortId={cohortId}
+          attendees={attendees} 
+          cohorts={allCohorts}
+          cohortId={cohortId || undefined}
         />
       </main>
     );
@@ -79,7 +83,7 @@ export default async function NewChartPage({
                   <p className="text-sm text-muted-foreground">
                     {layout.type === "traditional"
                       ? `${layout.rows} × ${layout.columns} grid`
-                      : `${layout.numGroups} groups of ${layout.studentsPerGroup}`}
+                      : `${layout.numGroups} groups of ${layout.attendeesPerGroup}`}
                   </p>
                 </CardContent>
               </Card>
@@ -101,7 +105,7 @@ export default async function NewChartPage({
       <div className="mb-8 space-y-1">
         <h1 className="text-3xl font-semibold tracking-tight">New Seating Chart</h1>
         <p className="text-sm text-muted-foreground">
-          Step 2: Pick a student cohort.
+          Step 2: Pick a attendee cohort.
         </p>
       </div>
 <div className="grid gap-4 sm:grid-cols-2">
@@ -109,12 +113,11 @@ export default async function NewChartPage({
     <Card className="hover:bg-accent/50 transition-colors border-dashed">
       <CardHeader className="flex flex-row items-center gap-4 pb-2">
         <Users className="h-5 w-5 text-muted-foreground opacity-50" />
-        <CardTitle className="text-base">All Students (No Cohort)</CardTitle>
+        <CardTitle className="text-base">All Attendees (No Cohort)</CardTitle>
       </CardHeader>
     </Card>
   </Link>
   {cohorts.map((cohort) => (
-...
           <Link key={cohort.id} href={`/charts/new?layoutId=${layoutId}&cohortId=${cohort.id}`}>
             <Card className="hover:bg-accent/50 transition-colors">
               <CardHeader className="flex flex-row items-center gap-4 pb-2">

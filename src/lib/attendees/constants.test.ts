@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
-  ACCOMMODATIONS,
+  DIETARY_ACCESSIBILITY,
   ANTISOCIAL_TRAITS,
   PROSOCIAL_TRAITS,
 } from "./constants";
 
-describe("student constants", () => {
+describe("attendee constants", () => {
   it("has a non-empty list of prosocial and antisocial traits", () => {
     expect(PROSOCIAL_TRAITS.length).toBeGreaterThan(0);
     expect(ANTISOCIAL_TRAITS.length).toBeGreaterThan(0);
@@ -19,8 +19,8 @@ describe("student constants", () => {
     }
   });
 
-  it("accommodations include all 8 spec §3 entries", () => {
-    expect(ACCOMMODATIONS.map((a) => a.value).slice().sort()).toEqual([
+  it("constraints include all 8 spec §3 entries", () => {
+    expect(DIETARY_ACCESSIBILITY.map((a) => a.value).slice().sort()).toEqual([
       "away_from_window",
       "front_of_room",
       "hearing_left",
@@ -36,7 +36,7 @@ describe("student constants", () => {
     const all = [
       ...PROSOCIAL_TRAITS,
       ...ANTISOCIAL_TRAITS,
-      ...ACCOMMODATIONS,
+      ...DIETARY_ACCESSIBILITY,
     ];
     for (const item of all) {
       expect(item.label.length).toBeGreaterThan(0);

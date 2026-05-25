@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { studentCreateSchema } from "./schemas";
+import { attendeeCreateSchema } from "./schemas";
 
-const studentId = "11111111-1111-4111-8111-111111111111";
-const otherStudentId = "22222222-2222-4222-8222-222222222222";
+const externalId = "11111111-1111-4111-8111-111111111111";
+const otherAttendeeId = "22222222-2222-4222-8222-222222222222";
 
-describe("studentCreateSchema", () => {
-  it("accepts a valid student", () => {
-    const result = studentCreateSchema.safeParse({
+describe("attendeeCreateSchema", () => {
+  it("accepts a valid attendee", () => {
+    const result = attendeeCreateSchema.safeParse({
       name: " Maya Chen ",
       prosocialTraits: ["helpful", "focused"],
       antisocialTraits: ["talkative"],
-      accommodations: ["front_of_room"],
-      peerTutors: [studentId],
-      avoid: [otherStudentId],
+      constraints: ["front_of_room"],
+      togetherIds: [externalId],
+      separateIds: [otherAttendeeId],
       notes: "Works well with clear directions.",
     });
 
@@ -24,13 +24,13 @@ describe("studentCreateSchema", () => {
   });
 
   it("converts blank notes to null", () => {
-    const result = studentCreateSchema.safeParse({
+    const result = attendeeCreateSchema.safeParse({
       name: "Maya Chen",
       prosocialTraits: [],
       antisocialTraits: [],
-      accommodations: [],
-      peerTutors: [],
-      avoid: [],
+      constraints: [],
+      togetherIds: [],
+      separateIds: [],
       notes: "   ",
     });
 
@@ -41,13 +41,13 @@ describe("studentCreateSchema", () => {
   });
 
   it("rejects an empty name", () => {
-    const result = studentCreateSchema.safeParse({
+    const result = attendeeCreateSchema.safeParse({
       name: " ",
       prosocialTraits: [],
       antisocialTraits: [],
-      accommodations: [],
-      peerTutors: [],
-      avoid: [],
+      constraints: [],
+      togetherIds: [],
+      separateIds: [],
       notes: null,
     });
 
@@ -55,13 +55,13 @@ describe("studentCreateSchema", () => {
   });
 
   it("rejects unknown trait values", () => {
-    const result = studentCreateSchema.safeParse({
+    const result = attendeeCreateSchema.safeParse({
       name: "Maya Chen",
       prosocialTraits: ["invented_trait"],
       antisocialTraits: [],
-      accommodations: [],
-      peerTutors: [],
-      avoid: [],
+      constraints: [],
+      togetherIds: [],
+      separateIds: [],
       notes: null,
     });
 
@@ -69,27 +69,27 @@ describe("studentCreateSchema", () => {
   });
 
   it("rejects invalid peer tutor ids", () => {
-    const result = studentCreateSchema.safeParse({
+    const result = attendeeCreateSchema.safeParse({
       name: "Maya Chen",
       prosocialTraits: [],
       antisocialTraits: [],
-      accommodations: [],
-      peerTutors: ["not-a-uuid"],
-      avoid: [],
+      constraints: [],
+      togetherIds: ["not-a-uuid"],
+      separateIds: [],
       notes: null,
     });
 
     expect(result.success).toBe(false);
   });
 
-  it("rejects students who appear in both peer tutors and avoid", () => {
-    const result = studentCreateSchema.safeParse({
+  it("rejects attendees who appear in both peer tutors and separateIds", () => {
+    const result = attendeeCreateSchema.safeParse({
       name: "Maya Chen",
       prosocialTraits: [],
       antisocialTraits: [],
-      accommodations: [],
-      peerTutors: [studentId],
-      avoid: [studentId],
+      constraints: [],
+      togetherIds: [externalId],
+      separateIds: [externalId],
       notes: null,
     });
 

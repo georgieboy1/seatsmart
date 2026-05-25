@@ -3,12 +3,13 @@
 import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { ClassroomLayout } from "@/lib/types/layout";
-import type { Student } from "@/lib/types/student";
+import type { Attendee } from "@/lib/types/attendee";
 import type { SeatingChart } from "@/lib/types/chart";
 import { generateSeating } from "@/lib/seating/generate";
 import type { GenerationOptions, SeatingIssue, SeatExplanation } from "@/lib/seating/types";
+import type { Cohort } from "@/lib/types/cohort";
 import { createChart, updateChart } from "@/lib/charts/actions";
-import { listStudents } from "@/lib/students/actions";
+import { listAttendees } from "@/lib/attendees/actions";
 import { exportToCsv, exportToJson, exportToPng } from "@/lib/charts/export";
 import { SeatingChartGrid } from "./seating-chart-grid";
 import { Button } from "@/components/ui/button";
@@ -34,41 +35,54 @@ import {
   Unlock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTerminology } from "@/components/providers/terminology-provider";
 
 type BooleanGenerationOption = Exclude<
   keyof GenerationOptions,
   "lockedSeats" | "seed"
 >;
 
-const GENERATION_OPTION_CONTROLS: {
-  id: BooleanGenerationOption;
-  label: string;
-}[] = [
-  { id: "honorAccommodations", label: "Honor accommodations" },
-  { id: "respectPeerTutors", label: "Respect peer tutors" },
-  { id: "respectAvoidList", label: "Respect avoid list" },
-  { id: "spreadAntisocialTraits", label: "Spread antisocial traits" },
-];
-
 type Props = {
   layout: ClassroomLayout;
-  students: Student[];
+  attendees: Attendee[];
+  cohorts: Cohort[];
   initialChart?: SeatingChart | null;
   cohortId?: string;
 };
 
-export function SeatingChartView({ layout, students: initialStudents, initialChart, cohortId }: Props) {
+export function SeatingChartView({ 
+  layout, 
+  attendees: initialAttendees, 
+  cohorts,
+  initialChart, 
+  cohortId 
+}: Props) {
+  const t = useTerminology();
   const router = useRouter();
+
+  const GENERATION_OPTION_CONTROLS: {
+    id: BooleanGenerationOption;
+    label: string;
+  }[] = useMemo(() => [
+    { id: "honorDietaryAccessibility", label: `Honor ${t.constraints.toLowerCase()}` },
+    { id: "respectMustSitTogether", label: `Respect ${t.together.toLowerCase()}` },
+    { id: "respectStrictlySeparate", label: `Respect ${t.separate.toLowerCase()}` },
+    { id: "spreadAntisocialTraits", label: "Spread social groups" },
+  ], [t]);
+
   const [isSaving, setIsSaving] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [students, setStudents] = useState<Student[]>(initialStudents);
+  const [attendees, setAttendees] = useState<Attendee[]>(initialAttendees);
   const [name, setName] = useState(initialChart?.name ?? "New Seating Chart");
   const [isStale, setIsStale] = useState(initialChart?.stale ?? false);
+  const [sidebarCohortId, setSidebarCohortId] = useState<string | "all" | "unassigned">(
+    cohortId || initialChart?.cohortId || "all"
+  );
   
   const [options, setOptions] = useState<GenerationOptions>({
-    honorAccommodations: true,
-    respectPeerTutors: true,
-    respectAvoidList: true,
+    honorDietaryAccessibility: true,
+    respectMustSitTogether: true,
+    respectStrictlySeparate: true,
     spreadAntisocialTraits: true,
     seed: initialChart?.seed ?? 0,
   });
@@ -83,17 +97,21 @@ export function SeatingChartView({ layout, students: initialStudents, initialCha
   const [issues, setIssues] = useState<SeatingIssue[]>([]);
   const [explanations, setExplanations] = useState<Record<string, SeatExplanation[]>>({});
 
-  const unassignedStudents = useMemo(() => {
+  const unassignedAttendees = useMemo(() => {
     // Ensure we have a set of all currently assigned IDs
     const assignedIds = new Set(
       Object.values(assignments).filter((id): id is string => typeof id === "string" && id !== "")
     );
-    // Filter the full roster to find students not in the chart
-    return students.filter((s) => !assignedIds.has(s.id));
-  }, [students, assignments]);
+    // Filter the full roster to find attendees not in the chart
+    const unplaced = attendees.filter((g) => !assignedIds.has(g.id));
+
+    if (sidebarCohortId === "all") return unplaced;
+    if (sidebarCohortId === "unassigned") return unplaced.filter(g => !g.cohortId);
+    return unplaced.filter(g => g.cohortId === sidebarCohortId);
+  }, [attendees, assignments, sidebarCohortId]);
 
   const handleGenerate = useCallback(() => {
-    const result = generateSeating(students, layout, {
+    const result = generateSeating(attendees, layout, {
       ...options,
       lockedSeats,
     });
@@ -102,18 +120,18 @@ export function SeatingChartView({ layout, students: initialStudents, initialCha
     setIssues(result.issues);
     setExplanations(result.explanations);
     setIsStale(false);
-  }, [students, layout, options, lockedSeats]);
+  }, [attendees, layout, options, lockedSeats]);
 
   const handleSwap = useCallback((fromKey: string, toKey: string) => {
     setAssignments((prev) => {
       const next = { ...prev };
-      const fromStudentId = next[fromKey];
-      const toStudentId = next[toKey];
+      const fromAttendeeId = next[fromKey];
+      const toAttendeeId = next[toKey];
       
-      if (fromStudentId) next[toKey] = fromStudentId;
+      if (fromAttendeeId) next[toKey] = fromAttendeeId;
       else delete next[toKey];
       
-      if (toStudentId) next[fromKey] = toStudentId;
+      if (toAttendeeId) next[fromKey] = toAttendeeId;
       else delete next[fromKey];
       
       return next;
@@ -148,14 +166,14 @@ export function SeatingChartView({ layout, students: initialStudents, initialCha
     });
   }, []);
 
-  const handleAssign = useCallback((seatKey: string, studentId: string) => {
+  const handleAssign = useCallback((seatKey: string, externalId: string) => {
     setAssignments((prev) => {
       const next = { ...prev };
-      // If student was already assigned elsewhere, clear that seat
+      // If attendee was already assigned elsewhere, clear that seat
       for (const [key, val] of Object.entries(next)) {
-        if (val === studentId) delete next[key];
+        if (val === externalId) delete next[key];
       }
-      next[seatKey] = studentId;
+      next[seatKey] = externalId;
       return next;
     });
   }, []);
@@ -199,18 +217,18 @@ export function SeatingChartView({ layout, students: initialStudents, initialCha
   const handleRefreshRoster = async () => {
     setIsRefreshing(true);
     try {
-      const freshStudents = await listStudents(cohortId);
-      setStudents(freshStudents);
+      const freshAttendees = await listAttendees(cohortId);
+      setAttendees(freshAttendees);
     } catch (error) {
-      console.error("Failed to refresh students:", error);
+      console.error("Failed to refresh attendees:", error);
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  const studentsById = useMemo(() => 
-    new Map(students.map(s => [s.id, s])),
-    [students]
+  const attendeesById = useMemo(() => 
+    new Map(attendees.map(g => [g.id, g])),
+    [attendees]
   );
 
   return (
@@ -268,7 +286,7 @@ export function SeatingChartView({ layout, students: initialStudents, initialCha
             size="sm" 
             onClick={handleRefreshRoster} 
             disabled={isRefreshing}
-            title="Refresh student roster"
+            title={`Refresh ${t.person.toLowerCase()} list`}
           >
             <RotateCcw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
           </Button>
@@ -284,7 +302,7 @@ export function SeatingChartView({ layout, students: initialStudents, initialCha
               <DropdownMenuItem onClick={() => exportToPng(name, "seating-chart-grid")}>
                 Export as PNG
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportToCsv(name, assignments, studentsById)}>
+              <DropdownMenuItem onClick={() => exportToCsv(name, assignments, attendeesById)}>
                 Export as CSV
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => exportToJson(name, { name, layoutId: layout.id, assignments, score })}>
@@ -307,6 +325,44 @@ export function SeatingChartView({ layout, students: initialStudents, initialCha
       <div className="flex flex-1 gap-8 overflow-hidden">
         {/* Left Panel: Controls & Issues */}
         <div className="w-80 flex flex-col gap-6 overflow-hidden">
+          <div className="space-y-4 rounded-lg border p-4 bg-card">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-sm">Unplaced {t.people}</h3>
+              <span className="text-xs bg-muted px-2 py-0.5 rounded-full font-medium">
+                {unassignedAttendees.length}
+              </span>
+            </div>
+            <select
+              value={sidebarCohortId}
+              onChange={(e) => setSidebarCohortId(e.target.value as any)}
+              className="w-full rounded-md border bg-transparent px-3 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="all">All {t.people}</option>
+              <option value="unassigned">No {t.group}</option>
+              {cohorts.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <ScrollArea className="h-48 rounded-md border bg-muted/20">
+              <div className="p-2 space-y-1">
+                {unassignedAttendees.length === 0 ? (
+                  <p className="text-[10px] text-center text-muted-foreground py-4 italic">
+                    No unplaced {t.people.toLowerCase()} found.
+                  </p>
+                ) : (
+                  unassignedAttendees.map((g) => (
+                    <div 
+                      key={g.id}
+                      className="text-xs px-2 py-1.5 rounded border bg-card shadow-sm cursor-default hover:border-primary/50 transition-colors"
+                    >
+                      {g.name}
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+
           <div className="space-y-4 rounded-lg border p-4 bg-card">
             <h3 className="font-medium text-sm">Generation Options</h3>
             <div className="space-y-3">
@@ -393,8 +449,8 @@ export function SeatingChartView({ layout, students: initialStudents, initialCha
           
           <SeatingChartGrid
             layout={layout}
-            students={students}
-            unassignedStudents={unassignedStudents}
+            attendees={attendees}
+            unassignedAttendees={unassignedAttendees}
             assignments={assignments}
             lockedSeats={lockedSeats}
             explanations={explanations}

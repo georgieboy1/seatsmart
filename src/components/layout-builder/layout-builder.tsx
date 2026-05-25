@@ -29,8 +29,8 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
   const [rows, setRows] = useState(layout.rows ?? 5);
   const [columns, setColumns] = useState(layout.columns ?? 6);
   const [numGroups, setNumGroups] = useState(layout.numGroups ?? 4);
-  const [studentsPerGroup, setStudentsPerGroup] = useState(
-    layout.studentsPerGroup ?? 4,
+  const [attendeesPerGroup, setAttendeesPerGroup] = useState(
+    layout.attendeesPerGroup ?? 4,
   );
   const [grid, setGrid] = useState<CellType[][]>(layout.grid);
 
@@ -72,7 +72,7 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
     const next =
       type === "traditional"
         ? createTraditionalGrid(rows, columns)
-        : createGroupsGrid(numGroups, studentsPerGroup);
+        : createGroupsGrid(numGroups, attendeesPerGroup);
 
     setGrid(next);
     originalGridRef.current = next;
@@ -92,8 +92,8 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
       <input type="hidden" name="numGroups" value={String(numGroups)} />
       <input
         type="hidden"
-        name="studentsPerGroup"
-        value={String(studentsPerGroup)}
+        name="attendeesPerGroup"
+        value={String(attendeesPerGroup)}
       />
       <input type="hidden" name="grid" value={JSON.stringify(grid)} />
 
@@ -141,11 +141,11 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
           rows={rows}
           columns={columns}
           numGroups={numGroups}
-          studentsPerGroup={studentsPerGroup}
+          attendeesPerGroup={attendeesPerGroup}
           onRowsChange={setRows}
           onColumnsChange={setColumns}
           onNumGroupsChange={setNumGroups}
-          onStudentsPerGroupChange={setStudentsPerGroup}
+          onAttendeesPerGroupChange={setAttendeesPerGroup}
           onApply={handleApply}
         />
         <div className="flex justify-center overflow-auto">

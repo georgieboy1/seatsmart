@@ -1,12 +1,12 @@
-import type { Student } from "@/lib/types/student";
+import type { Attendee } from "@/lib/types/attendee";
 import { parsePositionKey } from "./geometry";
 import { scoreRelationshipPair } from "./scoring";
 import type { SeatExplanation, SeatingIssue } from "./types";
 
 export type Phase2Input = {
-  students: Student[];
+  attendees: Attendee[];
   assignments: Record<string, string>;
-  placedStudentIds: Set<string>;
+  placedAttendeeIds: Set<string>;
   availableSeatKeys: string[];
   explanations: Record<string, SeatExplanation[]>;
 };
@@ -16,60 +16,60 @@ export type Phase2Result = Phase2Input & {
 };
 
 type PlacementScore = {
-  student: Student;
+  attendee: Attendee;
   seatKey: string;
   score: number;
   explanations: SeatExplanation[];
 };
 
-function remainingStudents(students: Student[], placedStudentIds: Set<string>) {
-  return students
-    .filter((student) => !placedStudentIds.has(student.id))
+function remainingAttendees(attendees: Attendee[], placedAttendeeIds: Set<string>) {
+  return attendees
+    .filter((attendee) => !placedAttendeeIds.has(attendee.id))
     .toSorted((a, b) => a.name.localeCompare(b.name));
 }
 
 function scorePlacement(
-  student: Student,
+  attendee: Attendee,
   seatKey: string,
-  studentsById: Map<string, Student>,
+  attendeesById: Map<string, Attendee>,
   assignments: Record<string, string>,
 ): PlacementScore {
   const seatPosition = parsePositionKey(seatKey);
   let score = 0;
   const explanations: SeatExplanation[] = [];
 
-  for (const [placedSeatKey, placedStudentId] of Object.entries(assignments)) {
-    const placedStudent = studentsById.get(placedStudentId);
-    if (!placedStudent) continue;
+  for (const [placedSeatKey, placedAttendeeId] of Object.entries(assignments)) {
+    const placedAttendee = attendeesById.get(placedAttendeeId);
+    if (!placedAttendee) continue;
 
     const pairScore = scoreRelationshipPair(
-      student,
+      attendee,
       seatPosition,
-      placedStudent,
+      placedAttendee,
       parsePositionKey(placedSeatKey),
     );
     score += pairScore.score;
     explanations.push(...pairScore.explanations);
   }
 
-  return { student, seatKey, score, explanations };
+  return { attendee, seatKey, score, explanations };
 }
 
-export function placeRemainingStudents(input: Phase2Input): Phase2Result {
+export function placeRemainingAttendees(input: Phase2Input): Phase2Result {
   const assignments = { ...input.assignments };
-  const placedStudentIds = new Set(input.placedStudentIds);
+  const placedAttendeeIds = new Set(input.placedAttendeeIds);
   const availableSeatKeys = [...input.availableSeatKeys].toSorted();
   const explanations = { ...input.explanations };
   const issues: SeatingIssue[] = [];
-  const studentsById = new Map(input.students.map((student) => [student.id, student]));
-  const remaining = remainingStudents(input.students, placedStudentIds);
+  const attendeesById = new Map(input.attendees.map((attendee) => [attendee.id, attendee]));
+  const remaining = remainingAttendees(input.attendees, placedAttendeeIds);
 
   while (remaining.length > 0 && availableSeatKeys.length > 0) {
     const ranked: PlacementScore[] = [];
 
-    for (const student of remaining) {
+    for (const attendee of remaining) {
       for (const seatKey of availableSeatKeys) {
-        ranked.push(scorePlacement(student, seatKey, studentsById, assignments));
+        ranked.push(scorePlacement(attendee, seatKey, attendeesById, assignments));
       }
     }
 
@@ -77,19 +77,19 @@ export function placeRemainingStudents(input: Phase2Input): Phase2Result {
       const scoreDiff = b.score - a.score;
       if (scoreDiff !== 0) return scoreDiff;
 
-      const nameDiff = a.student.name.localeCompare(b.student.name);
+      const nameDiff = a.attendee.name.localeCompare(b.attendee.name);
       if (nameDiff !== 0) return nameDiff;
 
       return a.seatKey.localeCompare(b.seatKey);
     });
 
     const best = ranked[0];
-    assignments[best.seatKey] = best.student.id;
-    placedStudentIds.add(best.student.id);
+    assignments[best.seatKey] = best.attendee.id;
+    placedAttendeeIds.add(best.attendee.id);
     explanations[best.seatKey] = best.explanations;
 
     remaining.splice(
-      remaining.findIndex((student) => student.id === best.student.id),
+      remaining.findIndex((attendee) => attendee.id === best.attendee.id),
       1,
     );
     availableSeatKeys.splice(
@@ -98,18 +98,18 @@ export function placeRemainingStudents(input: Phase2Input): Phase2Result {
     );
   }
 
-  for (const student of remaining) {
+  for (const attendee of remaining) {
     issues.push({
       severity: "warning",
-      message: `No available seat for ${student.name}.`,
-      studentIds: [student.id],
+      message: `No available seat for ${attendee.name}.`,
+      externalIds: [attendee.id],
     });
   }
 
   return {
-    students: input.students,
+    attendees: input.attendees,
     assignments,
-    placedStudentIds,
+    placedAttendeeIds,
     availableSeatKeys,
     issues,
     explanations,

@@ -3,7 +3,7 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
-import type { Student } from "@/lib/types/student";
+import type { Attendee } from "@/lib/types/attendee";
 import type { SeatExplanation } from "@/lib/seating/types";
 import { 
   Lock, 
@@ -17,9 +17,12 @@ import {
   Eye, 
   Ear,
   Ban,
-  LucideIcon
+  LucideIcon,
+  Leaf,
+  Wheat,
+  Accessibility
 } from "lucide-react";
-import { Accommodation } from "@/lib/students/constants";
+import { DietaryAccessibility } from "@/lib/attendees/constants";
 import {
   Tooltip,
   TooltipContent,
@@ -46,8 +49,10 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { useTerminology } from "@/components/providers/terminology-provider";
 
-const ACCOMMODATION_ICONS: Record<Accommodation, LucideIcon> = {
+const DIETARY_ACCESSIBILITY_ICONS: Record<DietaryAccessibility, LucideIcon> = {
+  // Education
   near_door: DoorOpen,
   near_teacher: UserRound,
   near_charging: Zap,
@@ -56,29 +61,39 @@ const ACCOMMODATION_ICONS: Record<Accommodation, LucideIcon> = {
   hearing_left: Ear,
   hearing_right: Ear,
   away_from_window: Ban,
+  // Events
+  vegan: Leaf,
+  vegetarian: Leaf,
+  "gluten-free": Wheat,
+  "nut-allergy": Ban,
+  "dairy-free": Ban,
+  "wheelchair-access": Accessibility,
+  "low-hearing": Ear,
+  "service-animal": UserRound,
 };
 
 type Props = {
   seatKey: string;
-  student?: Student;
-  unassignedStudents: Student[];
+  attendee?: Attendee;
+  unassignedAttendees: Attendee[];
   isLocked?: boolean;
   explanations?: SeatExplanation[];
   onLockToggle?: (seatKey: string) => void;
   onClear?: (seatKey: string) => void;
-  onAssign?: (seatKey: string, studentId: string) => void;
+  onAssign?: (seatKey: string, attendeeId: string) => void;
 };
 
 export function SeatItem({ 
   seatKey, 
-  student, 
-  unassignedStudents,
+  attendee, 
+  unassignedAttendees,
   isLocked, 
   explanations,
   onLockToggle,
   onClear,
   onAssign
 }: Props) {
+  const t = useTerminology();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const { 
@@ -89,13 +104,13 @@ export function SeatItem({
     isDragging 
   } = useDraggable({
     id: seatKey,
-    disabled: isLocked || !student,
-    data: { seatKey, student }
+    disabled: isLocked || !attendee,
+    data: { seatKey, attendee }
   });
 
   const { setNodeRef: setDroppableNodeRef, isOver } = useDroppable({
     id: seatKey,
-    data: { seatKey, student }
+    data: { seatKey, attendee }
   });
 
   const style = {
@@ -106,14 +121,14 @@ export function SeatItem({
     <div
       ref={setDroppableNodeRef}
       role="gridcell"
-      aria-label={student ? `Seat for ${student.name}` : "Empty seat"}
+      aria-label={attendee ? `Seat for ${attendee.name}` : "Empty seat"}
       className={cn(
         "relative aspect-square rounded-md border-2 p-1 transition-colors",
         isOver ? "border-primary bg-primary/10" : "border-muted-foreground/20 bg-card",
-        !student && "bg-muted/50 border-dashed"
+        !attendee && "bg-muted/50 border-dashed"
       )}
     >
-      {student ? (
+      {attendee ? (
         <div
           ref={setDraggableNodeRef}
           style={style}
@@ -121,7 +136,7 @@ export function SeatItem({
           {...attributes}
           role="button"
           aria-grabbed={isDragging}
-          aria-label={`Draggable student ${student.name}. ${isLocked ? "Locked." : "Drag to swap."}`}
+          aria-label={`Draggable ${t.person.toLowerCase()} ${attendee.name}. ${isLocked ? "Locked." : "Drag to swap."}`}
           className={cn(
             "flex h-full w-full flex-col items-center justify-between text-center cursor-grab active:cursor-grabbing",
             isDragging && "opacity-0"
@@ -133,21 +148,21 @@ export function SeatItem({
                 e.stopPropagation();
                 onLockToggle?.(seatKey);
               }}
-              aria-label={isLocked ? `Unlock ${student.name}` : `Lock ${student.name} in this seat`}
+              aria-label={isLocked ? `Unlock ${attendee.name}` : `Lock ${attendee.name} in this seat`}
               className="p-0.5 hover:bg-muted rounded"
             >
               <Lock className={cn("h-3 w-3", isLocked ? "text-primary fill-primary" : "text-muted-foreground/30")} />
             </button>
             <div className="flex gap-0.5">
-              {student.accommodations.slice(0, 2).map((acc) => {
-                const Icon = ACCOMMODATION_ICONS[acc] || UserRound;
+              {attendee.constraints.slice(0, 2).map((acc) => {
+                const Icon = DIETARY_ACCESSIBILITY_ICONS[acc] || UserRound;
                 return (
                   <Tooltip key={acc}>
                     <TooltipTrigger asChild>
                       <Icon className="h-3 w-3 text-primary" />
                     </TooltipTrigger>
                     <TooltipContent side="top">
-                      <p className="text-xs">{acc.replace(/_/g, " ")}</p>
+                      <p className="text-xs">{acc.replace(/-/g, " ")}</p>
                     </TooltipContent>
                   </Tooltip>
                 );
@@ -158,7 +173,7 @@ export function SeatItem({
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="text-[10px] font-medium leading-tight line-clamp-2 px-0.5">
-                {student.name}
+                {attendee.name}
               </span>
             </TooltipTrigger>
             {explanations && explanations.length > 0 && (
@@ -181,32 +196,32 @@ export function SeatItem({
             <PopoverTrigger asChild>
               <button 
                 className="flex h-full w-full items-center justify-center hover:bg-muted/50 transition-colors rounded"
-                aria-label="Assign student to this seat"
+                aria-label={`Assign ${t.person.toLowerCase()} to this seat`}
               >
                 <UserPlus className="h-4 w-4 text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors" />
               </button>
             </PopoverTrigger>
             <PopoverContent className="p-0 w-64" side="bottom" align="start">
               <Command>
-                <CommandInput placeholder="Search student..." />
+                <CommandInput placeholder={`Search ${t.person.toLowerCase()}...`} />
                 <CommandList>
-                  <CommandEmpty>No students found.</CommandEmpty>
-                  <CommandGroup heading="Unassigned Students">
-                    {unassignedStudents.length > 0 ? (
-                      unassignedStudents.map((s) => (
+                  <CommandEmpty>No {t.people.toLowerCase()} found.</CommandEmpty>
+                  <CommandGroup heading={`Unplaced ${t.people}`}>
+                    {unassignedAttendees.length > 0 ? (
+                      unassignedAttendees.map((g) => (
                         <CommandItem
-                          key={s.id}
+                          key={g.id}
                           onSelect={() => {
-                            onAssign?.(seatKey, s.id);
+                            onAssign?.(seatKey, g.id);
                             setIsPickerOpen(false);
                           }}
                         >
-                          {s.name}
+                          {g.name}
                         </CommandItem>
                       ))
                     ) : (
                       <div className="p-4 text-center">
-                        <p className="text-xs text-muted-foreground">All students from your roster are currently placed in the chart.</p>
+                        <p className="text-xs text-muted-foreground">All {t.people.toLowerCase()} from your list are currently placed in the chart.</p>
                       </div>
                     )}
                   </CommandGroup>
@@ -225,7 +240,7 @@ export function SeatItem({
         {content}
       </ContextMenuTrigger>
       <ContextMenuContent className="w-48">
-        {student ? (
+        {attendee ? (
           <>
             <ContextMenuItem onClick={() => onLockToggle?.(seatKey)}>
               {isLocked ? (
@@ -252,7 +267,7 @@ export function SeatItem({
         ) : (
           <ContextMenuItem onClick={() => setIsPickerOpen(true)}>
             <UserPlus className="mr-2 h-4 w-4" />
-            <span>Assign student</span>
+            <span>Assign {t.person.toLowerCase()}</span>
           </ContextMenuItem>
         )}
       </ContextMenuContent>

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Cohort } from "@/lib/types/cohort";
 import { cohortToInsert, rowToCohort, type CohortRow } from "./db";
-import { cohortCreateSchema } from "./schemas";
+import { cohortCreateSchema, cohortUpdateSchema } from "./schemas";
 
 const COHORT_DELETED_STALE_REASON = "cohort was deleted";
 
@@ -135,7 +135,7 @@ export async function deleteCohort(id: string) {
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/students");
+  revalidatePath("/attendees");
   revalidatePath("/charts");
   revalidatePath("/charts/new");
 }

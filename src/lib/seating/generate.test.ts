@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { ClassroomLayout } from "@/lib/types/layout";
-import type { Student } from "@/lib/types/student";
+import type { Attendee } from "@/lib/types/attendee";
 import { generateSeating } from "./generate";
 import type { GenerationOptions } from "./types";
 
 const defaultOptions: GenerationOptions = {
-  honorAccommodations: true,
+  honorDietaryAccessibilitys: true,
   respectPeerTutors: true,
   respectAvoidList: true,
   spreadAntisocialTraits: true,
@@ -22,23 +22,23 @@ function makeLayout(grid: ClassroomLayout["grid"]): ClassroomLayout {
     rows: null,
     columns: null,
     numGroups: null,
-    studentsPerGroup: null,
+    attendeesPerGroup: null,
     grid,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-02T00:00:00.000Z",
   };
 }
 
-function makeStudent(overrides: Partial<Student> = {}): Student {
+function makeAttendee(overrides: Partial<Attendee> = {}): Attendee {
   return {
-    id: "student-1",
+    id: "attendee-1",
     userId: "user-1",
     name: "Maya Chen",
     prosocialTraits: [],
     antisocialTraits: [],
-    accommodations: [],
-    peerTutors: [],
-    avoid: [],
+    constraints: [],
+    togetherIds: [],
+    separateIds: [],
     notes: null,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-02T00:00:00.000Z",
@@ -49,7 +49,7 @@ function makeStudent(overrides: Partial<Student> = {}): Student {
 describe("generateSeating", () => {
   it("returns an empty result for an empty classroom", () => {
     const result = generateSeating(
-      [makeStudent({ id: "maya", name: "Maya" })],
+      [makeAttendee({ id: "maya", name: "Maya" })],
       makeLayout([["perimeter", "door"]]),
       defaultOptions,
     );
@@ -59,17 +59,17 @@ describe("generateSeating", () => {
       {
         severity: "warning",
         message: "No available seat for Maya.",
-        studentIds: ["maya"],
+        externalIds: ["maya"],
       },
     ]);
   });
 
-  it("places the maximum possible students and reports overflow", () => {
+  it("places the maximum possible attendees and reports overflow", () => {
     const result = generateSeating(
       [
-        makeStudent({ id: "amy", name: "Amy" }),
-        makeStudent({ id: "maya", name: "Maya" }),
-        makeStudent({ id: "sam", name: "Sam" }),
+        makeAttendee({ id: "amy", name: "Amy" }),
+        makeAttendee({ id: "maya", name: "Maya" }),
+        makeAttendee({ id: "sam", name: "Sam" }),
       ],
       makeLayout([["seat", "seat"]]),
       defaultOptions,
@@ -80,23 +80,23 @@ describe("generateSeating", () => {
       {
         severity: "warning",
         message: "No available seat for Sam.",
-        studentIds: ["sam"],
+        externalIds: ["sam"],
       },
     ]);
   });
 
-  it("handles all students needing the same accommodation", () => {
+  it("handles all attendees needing the same accommodation", () => {
     const result = generateSeating(
       [
-        makeStudent({
+        makeAttendee({
           id: "amy",
           name: "Amy",
-          accommodations: ["near_door"],
+          constraints: ["near_door"],
         }),
-        makeStudent({
+        makeAttendee({
           id: "maya",
           name: "Maya",
-          accommodations: ["near_door"],
+          constraints: ["near_door"],
         }),
       ],
       makeLayout([
@@ -110,11 +110,11 @@ describe("generateSeating", () => {
     expect(result.score).toBeGreaterThan(0);
   });
 
-  it("respects avoid lists when possible", () => {
+  it("respects separateIds lists when possible", () => {
     const result = generateSeating(
       [
-        makeStudent({ id: "amy", name: "Amy", avoid: ["bob"] }),
-        makeStudent({ id: "bob", name: "Bob" }),
+        makeAttendee({ id: "amy", name: "Amy", separateIds: ["bob"] }),
+        makeAttendee({ id: "bob", name: "Bob" }),
       ],
       makeLayout([["seat", "seat", "empty", "seat"]]),
       defaultOptions,
@@ -130,12 +130,12 @@ describe("generateSeating", () => {
   it("never reassigns locked seats", () => {
     const result = generateSeating(
       [
-        makeStudent({
+        makeAttendee({
           id: "amy",
           name: "Amy",
-          accommodations: ["near_door"],
+          constraints: ["near_door"],
         }),
-        makeStudent({ id: "bob", name: "Bob" }),
+        makeAttendee({ id: "bob", name: "Bob" }),
       ],
       makeLayout([
         ["perimeter", "door"],
@@ -152,19 +152,19 @@ describe("generateSeating", () => {
   });
 
   it("is deterministic for the same inputs and seed", () => {
-    const students = [
-      makeStudent({ id: "amy", name: "Amy", peerTutors: ["bob"] }),
-      makeStudent({ id: "bob", name: "Bob" }),
-      makeStudent({ id: "maya", name: "Maya", avoid: ["sam"] }),
-      makeStudent({ id: "sam", name: "Sam" }),
+    const attendees = [
+      makeAttendee({ id: "amy", name: "Amy", togetherIds: ["bob"] }),
+      makeAttendee({ id: "bob", name: "Bob" }),
+      makeAttendee({ id: "maya", name: "Maya", separateIds: ["sam"] }),
+      makeAttendee({ id: "sam", name: "Sam" }),
     ];
     const layout = makeLayout([
       ["seat", "seat", "seat"],
       ["seat", "seat", "seat"],
     ]);
 
-    const first = generateSeating(students, layout, defaultOptions);
-    const second = generateSeating(students, layout, defaultOptions);
+    const first = generateSeating(attendees, layout, defaultOptions);
+    const second = generateSeating(attendees, layout, defaultOptions);
 
     expect(second.assignments).toEqual(first.assignments);
     expect(second.score).toBe(first.score);
