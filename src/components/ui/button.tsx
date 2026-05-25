@@ -9,16 +9,22 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
+        // Primary — brutalist solid foreground, theme-aware (inverts in dark).
+        default:
+          "bg-foreground text-background border-foreground hover:bg-foreground/90 [a]:hover:bg-foreground/90",
+        // Secondary — white bg, hard 1.5px border, dark text. The new brand's
+        // default for any non-primary call to action.
+        secondary:
+          "bg-background text-foreground border-[1.5px] border-foreground hover:bg-muted aria-expanded:bg-muted",
+        // Outline — lighter-weight alternative for tertiary actions.
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+        // Destructive — pale red bg + dark red text. red-900 on red-100 ≈ 11:1 (WCAG AAA).
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-red-100 text-red-900 border-red-300 hover:bg-red-200 focus-visible:border-red-400 focus-visible:ring-red-300/40 dark:bg-red-950 dark:text-red-200 dark:border-red-800 dark:hover:bg-red-900",
+        link: "text-foreground underline-offset-4 hover:underline",
       },
       size: {
         default:
