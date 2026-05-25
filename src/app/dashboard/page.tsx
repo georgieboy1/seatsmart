@@ -157,7 +157,7 @@ export default async function DashboardPage({
             </p>
             <form action={createCohort} className="flex gap-2">
               <Input name="name" placeholder={`New ${t.group.toLowerCase()} name...`} required className="h-8 text-xs" />
-              <Button type="submit" size="sm" className="h-8 text-xs">Add</Button>
+              <Button type="submit" size="sm" variant="secondary" className="h-8 text-xs">Add</Button>
             </form>
           </CardContent>
         </Card>

@@ -87,11 +87,10 @@ export default async function CohortsPage({
                   </Button>
                 </form>
                 <form action={deleteCohort.bind(null, cohort.id)}>
-                  <Button 
-                    type="submit" 
-                    size="icon" 
-                    variant="ghost" 
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  <Button
+                    type="submit"
+                    size="icon"
+                    variant="destructive"
                     title={`Delete ${t.group.toLowerCase()}`}
                   >
                     <Trash2 className="h-4 w-4" />
