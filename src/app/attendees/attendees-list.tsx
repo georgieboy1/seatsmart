@@ -7,7 +7,8 @@ import {
   ANTISOCIAL_TRAITS,
   PROSOCIAL_TRAITS,
 } from "@/lib/attendees/constants";
-import { assignAttendeesToCohort } from "@/lib/attendees/actions";
+import { assignAttendeesToCohort, deleteAttendees } from "@/lib/attendees/actions";
+import { Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTerminology } from "@/components/providers/terminology-provider";
@@ -147,6 +148,24 @@ export function AttendeesList({
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    const confirmed = window.confirm(
+      `Delete ${selectedIds.size} ${selectedIds.size === 1 ? t.person.toLowerCase() : t.people.toLowerCase()}? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    setIsUpdating(true);
+    try {
+      await deleteAttendees(Array.from(selectedIds));
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error(error);
+      alert(`Failed to delete ${t.people.toLowerCase()}`);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleInlineCohortUpdate = async (attendeeId: string, cohortId: string | null) => {
     setEditingCohortId(null);
     try {
@@ -172,14 +191,14 @@ export function AttendeesList({
   return (
     <div className="space-y-4">
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-4 rounded-md bg-muted/50 p-2 text-sm">
-          <span className="font-medium">{selectedIds.size} selected</span>
+        <div className="flex flex-wrap items-center gap-3 border-[1.5px] border-foreground bg-muted/50 p-2 text-sm">
+          <span className="font-medium tabular-nums">{selectedIds.size} selected</span>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">Move to {t.group}:</span>
             <select
               disabled={isUpdating}
               onChange={(e) => handleBulkCohortUpdate(e.target.value === "none" ? null : e.target.value)}
-              className="rounded-md border bg-background px-2 py-1"
+              className="border-[1.5px] border-foreground bg-background px-2 py-1"
               value=""
             >
               <option value="" disabled>Select {t.group.toLowerCase()}...</option>
@@ -189,9 +208,18 @@ export function AttendeesList({
               ))}
             </select>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={isUpdating}
+            onClick={handleBulkDelete}
+          >
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+            Delete selected
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setSelectedIds(new Set())}
             className="ml-auto"
           >
@@ -200,39 +228,29 @@ export function AttendeesList({
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-md border">
+      <div className="overflow-x-auto border-[1.5px] border-foreground">
         <table className="w-full min-w-[1000px] text-left text-sm">
-          <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
+          <thead className="sticky top-0 z-10 border-b-[1.5px] border-foreground bg-background text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-3 py-3 w-10">
-                <Checkbox 
+                <Checkbox
                   checked={selectedIds.size === attendees.length && attendees.length > 0}
                   onCheckedChange={toggleSelectAll}
+                  aria-label="Select all"
                 />
               </th>
-              <th 
+              <th
                 className="px-3 py-3 font-medium cursor-pointer hover:text-foreground"
                 onClick={() => toggleSort("name")}
               >
                 <div className="flex items-center gap-1">
-                  {t.person} Name
+                  Full Name
                   {sortConfig?.key === "name" && (
                     sortConfig.direction === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
                   )}
                 </div>
               </th>
-              <th 
-                className="px-3 py-3 font-medium cursor-pointer hover:text-foreground"
-                onClick={() => toggleSort("familyName")}
-              >
-                <div className="flex items-center gap-1">
-                  Last Name
-                  {sortConfig?.key === "familyName" && (
-                    sortConfig.direction === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                  )}
-                </div>
-              </th>
-              <th 
+              <th
                 className="px-3 py-3 font-medium cursor-pointer hover:text-foreground"
                 onClick={() => toggleSort("cohort")}
               >
@@ -258,8 +276,12 @@ export function AttendeesList({
                     onCheckedChange={() => toggleSelect(attendee.id)}
                   />
                 </td>
-                <td className="px-3 py-3 font-medium">{attendee.name}</td>
-                <td className="px-3 py-3">{attendee.familyName || <span className="text-muted-foreground">—</span>}</td>
+                <td className="px-3 py-3 font-medium">
+                  {attendee.name}
+                  {attendee.familyName && (
+                    <span className="font-normal"> {attendee.familyName}</span>
+                  )}
+                </td>
                 <td className="px-3 py-3">
                   {editingCohortId === attendee.id ? (
                     <select

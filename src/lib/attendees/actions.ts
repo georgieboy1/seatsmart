@@ -242,3 +242,57 @@ export async function deleteAttendee(id: string) {
   revalidatePath("/charts");
   redirect("/attendees");
 }
+
+/**
+ * Bulk-delete multiple attendees in one round-trip. Used by the
+ * attendees table's selection-toolbar "Delete Selected" action.
+ *
+ * Stale-flagging behavior matches per-attendee delete: any
+ * seating_chart whose assignments map references one of these IDs
+ * gets stale=true with reason "attendee was removed". Per CLAUDE.md
+ * we do NOT mutate the chart's assignments — the seat becomes
+ * orphaned, the UI renders it empty, the user regenerates when ready.
+ */
+export async function deleteAttendees(ids: string[]) {
+  if (ids.length === 0) return;
+  const { supabase, userId } = await requireUser();
+
+  const { data: allCharts } = await supabase
+    .from("seating_charts")
+    .select("id, assignments, stale_reasons")
+    .eq("user_id", userId);
+
+  if (allCharts) {
+    const affected = allCharts.filter((chart) => {
+      const placed = Object.values(chart.assignments as Record<string, string>);
+      return ids.some((id) => placed.includes(id));
+    });
+
+    if (affected.length > 0) {
+      await Promise.all(
+        affected.map((chart) => {
+          const reasons = Array.from(
+            new Set([...chart.stale_reasons, "attendee was removed"]),
+          );
+          return supabase
+            .from("seating_charts")
+            .update({ stale: true, stale_reasons: reasons })
+            .eq("id", chart.id);
+        }),
+      );
+    }
+  }
+
+  const { error } = await supabase
+    .from("attendees")
+    .delete()
+    .in("id", ids)
+    .eq("user_id", userId);
+
+  if (error) {
+    throw new Error(`Failed to delete attendees: ${error.message}`);
+  }
+
+  revalidatePath("/attendees");
+  revalidatePath("/charts");
+}
