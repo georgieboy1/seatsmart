@@ -12,6 +12,7 @@ import {
   createTraditionalGrid,
   createGroupsGrid,
 } from "@/lib/layouts/grid";
+import { updateLayout } from "@/lib/layouts/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ControlsPanel } from "./controls-panel";
@@ -74,7 +75,24 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
   }
 
   return (
-    <div className="space-y-6">
+    <form
+      action={updateLayout.bind(null, layout.id)}
+      className="space-y-6"
+    >
+      {/* Hidden inputs ship React state as FormData on submit. The
+          visible inputs above are UX-only — they have no name attr. */}
+      <input type="hidden" name="name" value={name} />
+      <input type="hidden" name="type" value={type} />
+      <input type="hidden" name="rows" value={String(rows)} />
+      <input type="hidden" name="columns" value={String(columns)} />
+      <input type="hidden" name="numGroups" value={String(numGroups)} />
+      <input
+        type="hidden"
+        name="studentsPerGroup"
+        value={String(studentsPerGroup)}
+      />
+      <input type="hidden" name="grid" value={JSON.stringify(grid)} />
+
       <div className="flex flex-wrap items-center gap-3 border-b pb-4">
         <Input
           aria-label="Layout name"
@@ -108,7 +126,9 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
             Groups
           </button>
         </div>
-        <Button className="ml-auto">Save</Button>
+        <Button type="submit" className="ml-auto">
+          Save
+        </Button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[220px_1fr_220px]">
@@ -131,13 +151,17 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
       </div>
 
       <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
-        <Button variant="outline">Duplicate</Button>
-        <Button variant="destructive">Delete</Button>
-        <Button variant="ghost" asChild>
+        <Button type="button" variant="outline">
+          Duplicate
+        </Button>
+        <Button type="button" variant="destructive">
+          Delete
+        </Button>
+        <Button type="button" variant="ghost" asChild>
           <Link href="/layouts">Cancel</Link>
         </Button>
-        <Button>Save</Button>
+        <Button type="submit">Save</Button>
       </div>
-    </div>
+    </form>
   );
 }

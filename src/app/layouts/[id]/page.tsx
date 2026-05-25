@@ -5,12 +5,17 @@ import { LayoutBuilder } from "@/components/layout-builder/layout-builder";
 
 export const dynamic = "force-dynamic";
 
+type SearchParams = Promise<{ error?: string }>;
+
 export default async function LayoutDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: SearchParams;
 }) {
   const { id } = await params;
+  const { error } = await searchParams;
   const layout = await getLayout(id);
 
   if (!layout) {
@@ -25,7 +30,15 @@ export default async function LayoutDetailPage({
       >
         ← All layouts
       </Link>
-      <LayoutBuilder layout={layout} />
+      {error && (
+        <p
+          role="alert"
+          className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive"
+        >
+          {error}
+        </p>
+      )}
+      <LayoutBuilder key={layout.updatedAt} layout={layout} />
     </main>
   );
 }

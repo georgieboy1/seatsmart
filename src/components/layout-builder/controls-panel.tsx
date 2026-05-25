@@ -75,7 +75,12 @@ export function ControlsPanel(props: Props) {
         </>
       )}
 
-      <Button onClick={props.onApply} variant="outline" className="w-full">
+      <Button
+        type="button"
+        onClick={props.onApply}
+        variant="outline"
+        className="w-full"
+      >
         Apply
       </Button>
       <p className="text-xs text-muted-foreground">

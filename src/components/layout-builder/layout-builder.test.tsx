@@ -97,4 +97,18 @@ describe("LayoutBuilder", () => {
       screen.getByLabelText(/seat at row 1, column 1/i),
     ).toBeInTheDocument();
   });
+
+  it("renders hidden form inputs reflecting all editable state", () => {
+    const layout = makeTraditional();
+    const { container } = render(<LayoutBuilder layout={layout} />);
+
+    const getHidden = (name: string) =>
+      container.querySelector(`input[type="hidden"][name="${name}"]`);
+
+    expect(getHidden("name")).toHaveValue("Room 12");
+    expect(getHidden("type")).toHaveValue("traditional");
+    expect(getHidden("rows")).toHaveValue("5");
+    expect(getHidden("columns")).toHaveValue("6");
+    expect(getHidden("grid")).toHaveValue(JSON.stringify(layout.grid));
+  });
 });
