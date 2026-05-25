@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useOptimistic, useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Attendee } from "@/lib/types/attendee";
 import type { Cohort } from "@/lib/types/cohort";
@@ -87,14 +88,28 @@ export function AttendeesList({
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [editingCohortId, setEditingCohortId] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [, startTransition] = useTransition();
+
+  // Optimistic projection of the attendees list so bulk delete reflects
+  // immediately while the server action persists in the background. The
+  // server action's revalidatePath refreshes the `attendees` prop, which
+  // resyncs the optimistic state automatically.
+  const [optimisticAttendees, optimisticallyRemove] = useOptimistic(
+    attendees,
+    (current, idsToRemove: string[]) =>
+      current.filter((a) => !idsToRemove.includes(a.id)),
+  );
 
   const cohortsById = useMemo(() => new Map(cohorts.map((c) => [c.id, c])), [cohorts]);
-  const attendeesById = useMemo(() => new Map(attendees.map((attendee) => [attendee.id, attendee])), [attendees]);
+  const attendeesById = useMemo(
+    () => new Map(optimisticAttendees.map((attendee) => [attendee.id, attendee])),
+    [optimisticAttendees],
+  );
 
   const sortedAttendees = useMemo(() => {
-    if (!sortConfig) return attendees;
+    if (!sortConfig) return optimisticAttendees;
 
-    return [...attendees].sort((a, b) => {
+    return [...optimisticAttendees].sort((a, b) => {
       let aValue: any = a[sortConfig.key as keyof Attendee];
       let bValue: any = b[sortConfig.key as keyof Attendee];
 
@@ -107,7 +122,7 @@ export function AttendeesList({
       if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
-  }, [attendees, sortConfig, cohortsById]);
+  }, [optimisticAttendees, sortConfig, cohortsById]);
 
   const toggleSort = (key: keyof Attendee | "cohort") => {
     setSortConfig((prev) => {
@@ -128,10 +143,10 @@ export function AttendeesList({
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === attendees.length) {
+    if (selectedIds.size === optimisticAttendees.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(attendees.map((g) => g.id)));
+      setSelectedIds(new Set(optimisticAttendees.map((g) => g.id)));
     }
   };
 
@@ -148,22 +163,30 @@ export function AttendeesList({
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;
+    const idsToDelete = Array.from(selectedIds);
+    const wordPerson =
+      idsToDelete.length === 1 ? t.person.toLowerCase() : t.people.toLowerCase();
     const confirmed = window.confirm(
-      `Delete ${selectedIds.size} ${selectedIds.size === 1 ? t.person.toLowerCase() : t.people.toLowerCase()}? This cannot be undone.`,
+      `Delete ${idsToDelete.length} ${wordPerson}? This cannot be undone.`,
     );
     if (!confirmed) return;
-    setIsUpdating(true);
-    try {
-      await deleteAttendees(Array.from(selectedIds));
+
+    // Optimistic: rows disappear from the table immediately. The bulk
+    // toolbar collapses because selectedIds clears. The server action
+    // runs in the background; on success the page revalidates and the
+    // optimistic projection resyncs. On error, sonner surfaces the
+    // failure and React rolls back the optimistic state on next render.
+    startTransition(async () => {
+      optimisticallyRemove(idsToDelete);
       setSelectedIds(new Set());
-    } catch (error) {
-      console.error(error);
-      alert(`Failed to delete ${t.people.toLowerCase()}`);
-    } finally {
-      setIsUpdating(false);
-    }
+      toast.promise(deleteAttendees(idsToDelete), {
+        loading: `Deleting ${idsToDelete.length} ${wordPerson}…`,
+        success: `Deleted ${idsToDelete.length} ${wordPerson}.`,
+        error: `Failed to delete — list will refresh.`,
+      });
+    });
   };
 
   const handleInlineCohortUpdate = async (attendeeId: string, cohortId: string | null) => {
@@ -176,9 +199,9 @@ export function AttendeesList({
     }
   };
 
-  if (attendees.length === 0) {
+  if (optimisticAttendees.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-12 text-center">
+      <div className="border-[1.5px] border-dashed border-foreground/30 p-12 text-center">
         <p className="text-base font-medium">No {t.people.toLowerCase()} yet</p>
         <p className="mt-2 text-sm text-muted-foreground">
           Add your first {t.person.toLowerCase()} in the next step, then build the rest of your
@@ -234,7 +257,7 @@ export function AttendeesList({
             <tr>
               <th className="px-3 py-3 w-10">
                 <Checkbox
-                  checked={selectedIds.size === attendees.length && attendees.length > 0}
+                  checked={selectedIds.size === optimisticAttendees.length && optimisticAttendees.length > 0}
                   onCheckedChange={toggleSelectAll}
                   aria-label="Select all"
                 />

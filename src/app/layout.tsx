@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "sonner";
 import { TerminologyProvider } from "@/components/providers/terminology-provider";
 import { getProfile } from "@/lib/attendees/profile";
 import Link from "next/link";
@@ -69,6 +70,15 @@ export default async function RootLayout({
             </div>
           </div>
         </footer>
+        {/* App-wide toast surface for optimistic-UI feedback.
+            Position bottom-right; the brutalist tokens cascade naturally. */}
+        <Toaster
+          position="bottom-right"
+          richColors
+          toastOptions={{
+            className: "border-[1.5px] border-foreground rounded-none",
+          }}
+        />
       </body>
     </html>
   );
