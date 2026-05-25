@@ -100,14 +100,19 @@ export async function importStudentsCsv(formData: FormData) {
   );
 }
 
-export async function listStudents(): Promise<Student[]> {
+export async function listStudents(cohortId?: string): Promise<Student[]> {
   const { supabase, userId } = await requireUser();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("students")
     .select("*")
-    .eq("user_id", userId)
-    .order("name", { ascending: true });
+    .eq("user_id", userId);
+
+  if (cohortId) {
+    query = query.eq("cohort_id", cohortId);
+  }
+
+  const { data, error } = await query.order("name", { ascending: true });
 
   if (error) {
     throw new Error(`Failed to load students: ${error.message}`);
@@ -167,6 +172,35 @@ export async function updateStudent(id: string, formData: FormData) {
 export async function deleteStudent(id: string) {
   const { supabase, userId } = await requireUser();
 
+  // Find charts that use this student
+  const { data: allCharts } = await supabase
+    .from("seating_charts")
+    .select("id, name, assignments, stale_reasons")
+    .eq("user_id", userId);
+
+  if (allCharts) {
+    const affected = allCharts.filter((chart) =>
+      Object.values(chart.assignments as Record<string, string>).includes(id),
+    );
+
+    if (affected.length > 0) {
+      await Promise.all(
+        affected.map((chart) => {
+          const reasons = Array.from(
+            new Set([...chart.stale_reasons, "student was removed"]),
+          );
+          return supabase
+            .from("seating_charts")
+            .update({
+              stale: true,
+              stale_reasons: reasons,
+            })
+            .eq("id", chart.id);
+        }),
+      );
+    }
+  }
+
   const { error } = await supabase
     .from("students")
     .delete()
@@ -178,5 +212,6 @@ export async function deleteStudent(id: string) {
   }
 
   revalidatePath("/students");
+  revalidatePath("/charts");
   redirect("/students");
 }

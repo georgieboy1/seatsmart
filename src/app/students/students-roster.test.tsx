@@ -1,7 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { Student } from "@/lib/types/student";
 import { StudentsRoster } from "./students-roster";
+
+vi.mock("@/lib/cohorts/actions", () => ({
+  listCohorts: vi.fn(async () => []),
+}));
 
 function makeStudent(overrides: Partial<Student> = {}): Student {
   return {

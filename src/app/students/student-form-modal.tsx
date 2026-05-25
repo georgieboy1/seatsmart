@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Student } from "@/lib/types/student";
+import type { Cohort } from "@/lib/types/cohort";
 import {
   ACCOMMODATIONS,
   ANTISOCIAL_TRAITS,
   PROSOCIAL_TRAITS,
 } from "@/lib/students/constants";
 import { createStudent, updateStudent } from "@/lib/students/actions";
+import { listCohorts } from "@/lib/cohorts/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -177,6 +179,11 @@ export function StudentFormModal({
   );
   const [peerTutors, setPeerTutors] = useState(initialPeerTutors);
   const [avoid, setAvoid] = useState(initialAvoid);
+  const [cohorts, setCohorts] = useState<Cohort[]>([]);
+
+  useEffect(() => {
+    listCohorts().then(setCohorts);
+  }, []);
 
   return (
     <div
@@ -200,16 +207,35 @@ export function StudentFormModal({
           </div>
 
           <div className="space-y-6 p-5">
-            <div className="space-y-2">
-              <Label htmlFor="student-name">Name</Label>
-              <Input
-                autoFocus
-                defaultValue={student?.name ?? ""}
-                id="student-name"
-                maxLength={100}
-                name="name"
-                required
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="student-name">Name</Label>
+                <Input
+                  autoFocus
+                  defaultValue={student?.name ?? ""}
+                  id="student-name"
+                  maxLength={100}
+                  name="name"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="student-cohort">Cohort</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  defaultValue={student?.cohortId ?? ""}
+                  id="student-cohort"
+                  name="cohortId"
+                >
+                  <option value="">No Cohort</option>
+                  {cohorts.map((cohort) => (
+                    <option key={cohort.id} value={cohort.id}>
+                      {cohort.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <CheckboxGroup

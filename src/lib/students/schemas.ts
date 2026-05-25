@@ -29,6 +29,7 @@ const notesSchema = z.preprocess((value) => {
 
 const studentSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
+  cohortId: z.string().uuid().nullable().optional(),
   prosocialTraits: z.array(z.enum(prosocialValues)).default([]),
   antisocialTraits: z.array(z.enum(antisocialValues)).default([]),
   accommodations: z.array(z.enum(accommodationValues)).default([]),
