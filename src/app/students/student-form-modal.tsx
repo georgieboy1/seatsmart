@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Student } from "@/lib/types/student";
 import {
   ACCOMMODATIONS,
@@ -13,6 +14,7 @@ import { Label } from "@/components/ui/label";
 
 type StudentFormModalProps = {
   student: Student | null;
+  students: Student[];
   onClose: () => void;
 };
 
@@ -55,9 +57,126 @@ function CheckboxGroup({ name, title, options, selected }: CheckboxGroupProps) {
   );
 }
 
-export function StudentFormModal({ student, onClose }: StudentFormModalProps) {
+function toggleId(ids: string[], id: string): string[] {
+  return ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id];
+}
+
+function RelationshipPicker({
+  currentStudentId,
+  students,
+  peerTutors,
+  avoid,
+  onPeerTutorsChange,
+  onAvoidChange,
+}: {
+  currentStudentId: string | null;
+  students: Student[];
+  peerTutors: string[];
+  avoid: string[];
+  onPeerTutorsChange: (ids: string[]) => void;
+  onAvoidChange: (ids: string[]) => void;
+}) {
+  const options = students.filter((student) => student.id !== currentStudentId);
+
+  if (options.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+        Add at least one other student before choosing peer tutors or avoid-list
+        relationships.
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium">Peer tutors</legend>
+        <div className="space-y-2">
+          {options.map((option) => {
+            const checked = peerTutors.includes(option.id);
+            const disabled = avoid.includes(option.id);
+
+            return (
+              <label
+                key={option.id}
+                className="flex gap-2 rounded-md border p-2 text-sm"
+              >
+                <input
+                  aria-label={`${option.name} as peer tutor`}
+                  checked={checked}
+                  className="mt-1 size-4"
+                  disabled={disabled}
+                  name="peerTutors"
+                  onChange={() => onPeerTutorsChange(toggleId(peerTutors, option.id))}
+                  type="checkbox"
+                  value={option.id}
+                />
+                <span>
+                  <span className="block font-medium">{option.name}</span>
+                  {disabled && (
+                    <span className="block text-xs text-muted-foreground">
+                      Remove from avoid list first.
+                    </span>
+                  )}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium">Avoid list</legend>
+        <div className="space-y-2">
+          {options.map((option) => {
+            const checked = avoid.includes(option.id);
+            const disabled = peerTutors.includes(option.id);
+
+            return (
+              <label
+                key={option.id}
+                className="flex gap-2 rounded-md border p-2 text-sm"
+              >
+                <input
+                  aria-label={`${option.name} on avoid list`}
+                  checked={checked}
+                  className="mt-1 size-4"
+                  disabled={disabled}
+                  name="avoid"
+                  onChange={() => onAvoidChange(toggleId(avoid, option.id))}
+                  type="checkbox"
+                  value={option.id}
+                />
+                <span>
+                  <span className="block font-medium">{option.name}</span>
+                  {disabled && (
+                    <span className="block text-xs text-muted-foreground">
+                      Remove from peer tutors first.
+                    </span>
+                  )}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+    </div>
+  );
+}
+
+export function StudentFormModal({
+  student,
+  students,
+  onClose,
+}: StudentFormModalProps) {
   const isEditing = Boolean(student);
   const action = student ? updateStudent.bind(null, student.id) : createStudent;
+  const initialPeerTutors = student?.peerTutors ?? [];
+  const initialAvoid = (student?.avoid ?? []).filter(
+    (id) => !initialPeerTutors.includes(id),
+  );
+  const [peerTutors, setPeerTutors] = useState(initialPeerTutors);
+  const [avoid, setAvoid] = useState(initialAvoid);
 
   return (
     <div
@@ -114,6 +233,15 @@ export function StudentFormModal({ student, onClose }: StudentFormModalProps) {
               selected={student?.accommodations ?? []}
             />
 
+            <RelationshipPicker
+              currentStudentId={student?.id ?? null}
+              students={students}
+              peerTutors={peerTutors}
+              avoid={avoid}
+              onPeerTutorsChange={setPeerTutors}
+              onAvoidChange={setAvoid}
+            />
+
             <div className="space-y-2">
               <Label htmlFor="student-notes">Notes</Label>
               <textarea
@@ -124,13 +252,6 @@ export function StudentFormModal({ student, onClose }: StudentFormModalProps) {
                 name="notes"
               />
             </div>
-
-            {student?.peerTutors.map((id) => (
-              <input key={`peer-${id}`} name="peerTutors" type="hidden" value={id} />
-            ))}
-            {student?.avoid.map((id) => (
-              <input key={`avoid-${id}`} name="avoid" type="hidden" value={id} />
-            ))}
           </div>
 
           <div className="flex justify-end gap-2 border-t p-5">

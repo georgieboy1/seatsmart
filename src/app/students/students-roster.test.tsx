@@ -39,7 +39,7 @@ describe("StudentsRoster", () => {
   it("opens the edit modal with existing values checked", () => {
     render(<StudentsRoster students={[makeStudent()]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /edit/i })[0]);
 
     const dialog = screen.getByRole("dialog");
     expect(
@@ -54,29 +54,92 @@ describe("StudentsRoster", () => {
     );
   });
 
-  it("preserves existing peer tutor and avoid ids as hidden inputs on edit", () => {
+  it("checks existing peer tutor and avoid relationships on edit", () => {
     render(
       <StudentsRoster
         students={[
           makeStudent({
+            id: "11111111-1111-4111-8111-111111111111",
+            name: "Maya Chen",
             peerTutors: ["22222222-2222-4222-8222-222222222222"],
             avoid: ["33333333-3333-4333-8333-333333333333"],
+          }),
+          makeStudent({
+            id: "22222222-2222-4222-8222-222222222222",
+            name: "Sam Patel",
+          }),
+          makeStudent({
+            id: "33333333-3333-4333-8333-333333333333",
+            name: "Jordan Lee",
           }),
         ]}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /edit/i })[0]);
 
     const dialog = screen.getByRole("dialog");
-    const peerTutorInput = dialog.querySelector<HTMLInputElement>(
-      'input[name="peerTutors"]',
-    );
-    const avoidInput =
-      dialog.querySelector<HTMLInputElement>('input[name="avoid"]');
+    expect(
+      within(dialog).getByLabelText(/sam patel as peer tutor/i),
+    ).toBeChecked();
+    expect(
+      within(dialog).getByLabelText(/jordan lee on avoid list/i),
+    ).toBeChecked();
+  });
 
-    expect(peerTutorInput).toHaveValue("22222222-2222-4222-8222-222222222222");
-    expect(avoidInput).toHaveValue("33333333-3333-4333-8333-333333333333");
+  it("does not show the current student as a relationship option", () => {
+    render(
+      <StudentsRoster
+        students={[
+          makeStudent({
+            id: "11111111-1111-4111-8111-111111111111",
+            name: "Maya Chen",
+          }),
+          makeStudent({
+            id: "22222222-2222-4222-8222-222222222222",
+            name: "Sam Patel",
+          }),
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: /edit/i })[0]);
+
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).queryByLabelText(/maya chen as peer tutor/i),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).getByLabelText(/sam patel as peer tutor/i),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps peer tutor and avoid choices mutually exclusive", () => {
+    render(
+      <StudentsRoster
+        students={[
+          makeStudent({
+            id: "11111111-1111-4111-8111-111111111111",
+            name: "Maya Chen",
+          }),
+          makeStudent({
+            id: "22222222-2222-4222-8222-222222222222",
+            name: "Sam Patel",
+          }),
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: /edit/i })[0]);
+
+    const dialog = screen.getByRole("dialog");
+    const peerTutor = within(dialog).getByLabelText(/sam patel as peer tutor/i);
+    const avoid = within(dialog).getByLabelText(/sam patel on avoid list/i);
+
+    fireEvent.click(peerTutor);
+
+    expect(peerTutor).toBeChecked();
+    expect(avoid).toBeDisabled();
   });
 
   it("closes the modal when Cancel is clicked", () => {

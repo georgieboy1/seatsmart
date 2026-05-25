@@ -43,7 +43,11 @@ export function StudentsRoster({ students }: { students: Student[] }) {
       <StudentsList students={students} onEdit={setModalStudent} />
 
       {(isAdding || modalStudent) && (
-        <StudentFormModal student={modalStudent} onClose={closeModal} />
+        <StudentFormModal
+          student={modalStudent}
+          students={students}
+          onClose={closeModal}
+        />
       )}
     </>
   );
