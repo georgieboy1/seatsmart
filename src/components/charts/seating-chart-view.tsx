@@ -23,16 +23,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  Save, 
-  RotateCcw, 
-  ChevronLeft, 
-  AlertTriangle, 
-  Info, 
+import {
+  Save,
+  RotateCcw,
+  ChevronLeft,
+  AlertTriangle,
+  Info,
   Trophy,
   Download,
   Ban,
-  Unlock
+  Unlock,
+  GripVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTerminology } from "@/components/providers/terminology-provider";
@@ -351,11 +352,16 @@ export function SeatingChartView({
                   </p>
                 ) : (
                   unassignedAttendees.map((g) => (
-                    <div 
+                    <div
                       key={g.id}
-                      className="text-xs px-2 py-1.5 rounded border bg-card shadow-sm cursor-default hover:border-primary/50 transition-colors"
+                      className="flex items-center gap-1.5 px-2 py-1.5 text-xs border border-foreground/40 bg-card hover:border-foreground transition-colors"
+                      aria-label={`${g.name} — drag affordance`}
                     >
-                      {g.name}
+                      <GripVertical
+                        className="h-3 w-3 shrink-0 text-muted-foreground"
+                        aria-hidden
+                      />
+                      <span>{g.name}</span>
                     </div>
                   ))
                 )}
@@ -424,17 +430,32 @@ export function SeatingChartView({
                     <p className="text-xs italic">No issues detected.</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {issues.map((issue, i) => (
-                      <div key={i} className="flex gap-2 text-xs leading-snug">
-                        {issue.severity === "error" ? (
-                          <Ban className="h-4 w-4 text-destructive shrink-0" />
-                        ) : (
-                          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
-                        )}
-                        <span>{issue.message}</span>
-                      </div>
-                    ))}
+                  <div className="space-y-2">
+                    {issues.map((issue, i) => {
+                      // Per the brand directive: subtle pale amber/yellow
+                      // background gently draws the eye to issues without
+                      // breaking contrast. Errors get a pale red treatment
+                      // for additional severity differentiation.
+                      const isError = issue.severity === "error";
+                      return (
+                        <div
+                          key={i}
+                          className={cn(
+                            "flex gap-2 px-2 py-1.5 text-xs leading-snug border",
+                            isError
+                              ? "bg-red-50 border-red-200 text-red-900 dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-200"
+                              : "bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950/30 dark:border-amber-900/50 dark:text-amber-200",
+                          )}
+                        >
+                          {isError ? (
+                            <Ban className="h-4 w-4 shrink-0" />
+                          ) : (
+                            <AlertTriangle className="h-4 w-4 shrink-0" />
+                          )}
+                          <span>{issue.message}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
