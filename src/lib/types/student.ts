@@ -7,6 +7,7 @@ import type {
 export type Student = {
   id: string;
   userId: string;
+  cohortId?: string | null;
   name: string;
   prosocialTraits: ProsocialTrait[];
   antisocialTraits: AntisocialTrait[];
