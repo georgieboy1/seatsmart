@@ -79,13 +79,15 @@ export function optimizeSeatSwaps(input: Phase3Input): Phase3Result {
   }
 
   const relationshipExplanations = explainAssignments(input.students, assignments);
+  const explanations: Record<string, SeatExplanation[]> = { ...input.explanations };
+
+  for (const [seatKey, items] of Object.entries(relationshipExplanations)) {
+    explanations[seatKey] = [...(explanations[seatKey] ?? []), ...items];
+  }
 
   return {
     assignments,
-    explanations: {
-      ...input.explanations,
-      ...relationshipExplanations,
-    },
+    explanations,
     swapsAttempted,
     swapsAccepted,
     score,
