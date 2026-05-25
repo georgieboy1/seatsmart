@@ -136,10 +136,18 @@
     letter-spacing: -0.02em;
   }
 
-  /* All tabular numerics use Geist Mono with locked-grid digits.
-     Apply to <td>, <th>, and any element with .tabular-nums (e.g. the
-     dashboard's count tiles) so pipeline metrics align column-wise. */
-  td, th, .tabular-nums {
+  /* Pipeline metrics, count tiles, and any element marked .tabular-nums
+     swap to Geist Mono AND lock digit width. This is what makes the
+     brutalist "data display" treatment visually distinct from body text;
+     plain font-variant-numeric in Geist Sans is invisible at a glance. */
+  .tabular-nums {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Table cells get digit-width locking only — they may contain non-numeric
+     content (names, labels), so we don't override the font family. */
+  td, th {
     font-variant-numeric: tabular-nums;
   }
 
