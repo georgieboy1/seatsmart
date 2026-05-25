@@ -1,10 +1,10 @@
-import Link from "next/link";
 import type { ClassroomLayout } from "@/lib/types/layout";
+import { LayoutListItem } from "./layout-list-item";
 
 export function LayoutsList({ layouts }: { layouts: ClassroomLayout[] }) {
   if (layouts.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-12 text-center">
+      <div className="border-[1.5px] border-dashed border-foreground/30 p-12 text-center">
         <p className="text-base font-medium">No layouts yet</p>
         <p className="mt-2 text-sm text-muted-foreground">
           Click <span className="font-medium">+ New layout</span> above to
@@ -17,19 +17,7 @@ export function LayoutsList({ layouts }: { layouts: ClassroomLayout[] }) {
   return (
     <ul className="space-y-2">
       {layouts.map((layout) => (
-        <li key={layout.id}>
-          <Link
-            href={`/layouts/${layout.id}`}
-            className="block rounded-md border p-4 transition-colors hover:bg-accent"
-          >
-            <p className="font-medium">{layout.name}</p>
-            <p className="text-sm text-muted-foreground">
-              {layout.type === "traditional"
-                ? `${layout.rows ?? 0} × ${layout.columns ?? 0} traditional`
-                : `${layout.numGroups ?? 0} groups of ${layout.attendeesPerGroup ?? 0}`}
-            </p>
-          </Link>
-        </li>
+        <LayoutListItem key={layout.id} layout={layout} />
       ))}
     </ul>
   );

@@ -233,6 +233,37 @@ export async function duplicateLayout(id: string) {
   redirect(`/layouts/${inserted!.id}`);
 }
 
+/**
+ * Lightweight rename for layouts. Used by the kebab menu on
+ * /layouts cards (which doesn't have the full builder context).
+ * Does not touch the grid or trigger chart-stale flagging — only
+ * the human-readable name changes.
+ */
+export async function renameLayout(id: string, formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) {
+    redirect(`/layouts?error=Name+is+required`);
+  }
+  if (name.length > 100) {
+    redirect(`/layouts?error=Name+is+too+long`);
+  }
+
+  const { supabase, userId } = await requireUser();
+
+  const { error } = await supabase
+    .from("layouts")
+    .update({ name })
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  if (error) {
+    redirect(`/layouts?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/layouts");
+  revalidatePath(`/layouts/${id}`);
+}
+
 export async function deleteLayout(id: string) {
   const { supabase, userId } = await requireUser();
 

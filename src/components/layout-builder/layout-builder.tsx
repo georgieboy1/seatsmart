@@ -130,9 +130,9 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
             Groups
           </button>
         </div>
-        <Button type="submit" className="ml-auto">
-          Save
-        </Button>
+        {/* The top-bar Save button was removed (Phase 2 / Commit 5).
+            The bottom action bar's Save is the single source of save
+            intent for this screen. */}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[220px_1fr_220px]">
