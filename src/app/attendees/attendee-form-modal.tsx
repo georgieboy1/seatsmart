@@ -13,6 +13,7 @@ import { listCohorts } from "@/lib/cohorts/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RelationshipMultiSelect } from "@/components/ui/relationship-multi-select";
 import { useTerminology } from "@/components/providers/terminology-provider";
 
 type AttendeeFormModalProps = {
@@ -60,10 +61,6 @@ function CheckboxGroup({ name, title, options, selected }: CheckboxGroupProps) {
   );
 }
 
-function toggleId(ids: string[], id: string): string[] {
-  return ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id];
-}
-
 function RelationshipPicker({
   currentAttendeeId,
   attendees,
@@ -83,11 +80,13 @@ function RelationshipPicker({
   onMustSitTogetherChange: (ids: string[]) => void;
   onStrictlySeparateChange: (ids: string[]) => void;
 }) {
-  const options = attendees.filter((attendee) => attendee.id !== currentAttendeeId);
+  const options = attendees
+    .filter((attendee) => attendee.id !== currentAttendeeId)
+    .map((a) => ({ id: a.id, name: a.name }));
 
   if (options.length === 0) {
     return (
-      <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+      <div className="border-[1.5px] border-dashed border-foreground/30 p-4 text-sm text-muted-foreground">
         Add at least one other person before choosing relationship rules.
       </div>
     );
@@ -97,74 +96,28 @@ function RelationshipPicker({
     <div className="grid gap-4 md:grid-cols-2">
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">{togetherLabel}</legend>
-        <div className="space-y-2">
-          {options.map((option) => {
-            const checked = togetherIds.includes(option.id);
-            const disabled = separateIds.includes(option.id);
-
-            return (
-              <label
-                key={option.id}
-                className="flex gap-2 rounded-md border p-2 text-sm"
-              >
-                <input
-                  aria-label={`${option.name} ${togetherLabel.toLowerCase()}`}
-                  checked={checked}
-                  className="mt-1 size-4"
-                  disabled={disabled}
-                  name="togetherIds"
-                  onChange={() => onMustSitTogetherChange(toggleId(togetherIds, option.id))}
-                  type="checkbox"
-                  value={option.id}
-                />
-                <span>
-                  <span className="block font-medium">{option.name}</span>
-                  {disabled && (
-                    <span className="block text-xs text-muted-foreground">
-                      Remove from separate list first.
-                    </span>
-                  )}
-                </span>
-              </label>
-            );
-          })}
-        </div>
+        <RelationshipMultiSelect
+          name="togetherIds"
+          options={options}
+          selectedIds={togetherIds}
+          excludedIds={separateIds}
+          excludedHint="In separate list"
+          placeholder="+ Add to together…"
+          onChange={onMustSitTogetherChange}
+        />
       </fieldset>
 
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">{separateLabel}</legend>
-        <div className="space-y-2">
-          {options.map((option) => {
-            const checked = separateIds.includes(option.id);
-            const disabled = togetherIds.includes(option.id);
-
-            return (
-              <label
-                key={option.id}
-                className="flex gap-2 rounded-md border p-2 text-sm"
-              >
-                <input
-                  aria-label={`${option.name} ${separateLabel.toLowerCase()}`}
-                  checked={checked}
-                  className="mt-1 size-4"
-                  disabled={disabled}
-                  name="separateIds"
-                  onChange={() => onStrictlySeparateChange(toggleId(separateIds, option.id))}
-                  type="checkbox"
-                  value={option.id}
-                />
-                <span>
-                  <span className="block font-medium">{option.name}</span>
-                  {disabled && (
-                    <span className="block text-xs text-muted-foreground">
-                      Remove from together list first.
-                    </span>
-                  )}
-                </span>
-              </label>
-            );
-          })}
-        </div>
+        <RelationshipMultiSelect
+          name="separateIds"
+          options={options}
+          selectedIds={separateIds}
+          excludedIds={togetherIds}
+          excludedHint="In together list"
+          placeholder="+ Add to separate…"
+          onChange={onStrictlySeparateChange}
+        />
       </fieldset>
     </div>
   );
