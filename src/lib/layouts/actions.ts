@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { layoutCreateSchema, layoutUpdateSchema } from "./schemas";
 import { rowToLayout, layoutToInsert, type LayoutRow } from "./db";
+import { createTraditionalGrid } from "./grid";
 import type { ClassroomLayout } from "@/lib/types/layout";
 
 async function requireUser() {
@@ -45,6 +46,37 @@ function parseFormData(formData: FormData) {
     studentsPerGroup: !isTraditional ? num("studentsPerGroup") : null,
     grid,
   };
+}
+
+export async function createDefaultLayout() {
+  const { supabase, userId } = await requireUser();
+
+  const grid = createTraditionalGrid(5, 6);
+  const { data, error } = await supabase
+    .from("layouts")
+    .insert(
+      layoutToInsert(
+        {
+          name: "Untitled layout",
+          type: "traditional",
+          rows: 5,
+          columns: 6,
+          numGroups: null,
+          studentsPerGroup: null,
+          grid,
+        },
+        userId,
+      ),
+    )
+    .select("id")
+    .single();
+
+  if (error) {
+    redirect(`/layouts?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/layouts");
+  redirect(`/layouts/${data!.id}`);
 }
 
 export async function createLayout(formData: FormData) {

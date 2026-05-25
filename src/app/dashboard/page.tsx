@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
@@ -26,11 +27,16 @@ export default async function DashboardPage() {
           Signed in as {user.email}
         </p>
       </div>
-      <form action={logout}>
-        <Button type="submit" variant="outline">
-          Log out
+      <div className="flex gap-3">
+        <Button asChild>
+          <Link href="/layouts">Classroom layouts</Link>
         </Button>
-      </form>
+        <form action={logout}>
+          <Button type="submit" variant="outline">
+            Log out
+          </Button>
+        </form>
+      </div>
     </main>
   );
 }
