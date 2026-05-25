@@ -12,7 +12,11 @@ import {
   createTraditionalGrid,
   createGroupsGrid,
 } from "@/lib/layouts/grid";
-import { updateLayout } from "@/lib/layouts/actions";
+import {
+  updateLayout,
+  duplicateLayout,
+  deleteLayout,
+} from "@/lib/layouts/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ControlsPanel } from "./controls-panel";
@@ -151,10 +155,27 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
       </div>
 
       <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
-        <Button type="button" variant="outline">
+        <Button
+          type="submit"
+          variant="outline"
+          formAction={duplicateLayout.bind(null, layout.id)}
+        >
           Duplicate
         </Button>
-        <Button type="button" variant="destructive">
+        <Button
+          type="submit"
+          variant="destructive"
+          formAction={deleteLayout.bind(null, layout.id)}
+          onClick={(e) => {
+            if (
+              !window.confirm(
+                "Delete this layout? This cannot be undone.",
+              )
+            ) {
+              e.preventDefault();
+            }
+          }}
+        >
           Delete
         </Button>
         <Button type="button" variant="ghost" asChild>

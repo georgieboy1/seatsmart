@@ -168,6 +168,49 @@ export async function updateLayout(id: string, formData: FormData) {
   revalidatePath(`/layouts/${id}`);
 }
 
+export async function duplicateLayout(id: string) {
+  const { supabase, userId } = await requireUser();
+
+  const { data: source, error: fetchError } = await supabase
+    .from("layouts")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .single();
+
+  if (fetchError || !source) {
+    redirect("/layouts?error=Source+layout+not+found");
+  }
+
+  const sourceLayout = rowToLayout(source as LayoutRow);
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("layouts")
+    .insert(
+      layoutToInsert(
+        {
+          name: `${sourceLayout.name} (copy)`,
+          type: sourceLayout.type,
+          rows: sourceLayout.rows,
+          columns: sourceLayout.columns,
+          numGroups: sourceLayout.numGroups,
+          studentsPerGroup: sourceLayout.studentsPerGroup,
+          grid: sourceLayout.grid,
+        },
+        userId,
+      ),
+    )
+    .select("id")
+    .single();
+
+  if (insertError) {
+    redirect(`/layouts?error=${encodeURIComponent(insertError.message)}`);
+  }
+
+  revalidatePath("/layouts");
+  redirect(`/layouts/${inserted!.id}`);
+}
+
 export async function deleteLayout(id: string) {
   const { supabase, userId } = await requireUser();
 

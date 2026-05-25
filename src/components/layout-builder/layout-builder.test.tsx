@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { LayoutBuilder } from "./layout-builder";
 import type { ClassroomLayout } from "@/lib/types/layout";
@@ -96,6 +96,20 @@ describe("LayoutBuilder", () => {
     expect(
       screen.getByLabelText(/seat at row 1, column 1/i),
     ).toBeInTheDocument();
+  });
+
+  it("confirms before deleting a layout", () => {
+    const confirmSpy = vi
+      .spyOn(window, "confirm")
+      .mockReturnValue(false);
+    render(<LayoutBuilder layout={makeTraditional()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^delete$/i }));
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      expect.stringMatching(/delete this layout/i),
+    );
+    confirmSpy.mockRestore();
   });
 
   it("renders hidden form inputs reflecting all editable state", () => {
