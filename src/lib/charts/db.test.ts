@@ -5,13 +5,15 @@ const row: ChartRow = {
   id: "chart-1",
   user_id: "user-1",
   layout_id: "layout-1",
+  cohort_id: "cohort-1",
   name: "Monday chart",
   assignments: {
     "1,1": "student-1",
     "1,2": "student-2",
   },
-  locked_seats: ["1,1"],
+  locked_seats: { "1,1": "student-1" },
   score: 87,
+  seed: 123,
   stale: true,
   stale_reasons: ["layout resized", "student removed: Maya"],
   created_at: "2026-01-01T00:00:00.000Z",
@@ -24,13 +26,15 @@ describe("chart db mappers", () => {
       id: "chart-1",
       userId: "user-1",
       layoutId: "layout-1",
+      cohortId: "cohort-1",
       name: "Monday chart",
       assignments: {
         "1,1": "student-1",
         "1,2": "student-2",
       },
-      lockedSeats: ["1,1"],
+      lockedSeats: { "1,1": "student-1" },
       score: 87,
+      seed: 123,
       stale: true,
       staleReasons: ["layout resized", "student removed: Maya"],
       createdAt: "2026-01-01T00:00:00.000Z",
@@ -43,12 +47,14 @@ describe("chart db mappers", () => {
       chartToInsert(
         {
           layoutId: "layout-1",
+          cohortId: null,
           name: "Monday chart",
           assignments: {
             "1,1": "student-1",
           },
-          lockedSeats: ["1,1"],
+          lockedSeats: { "1,1": "student-1" },
           score: 92,
+          seed: 456,
           stale: false,
           staleReasons: [],
         },
@@ -57,12 +63,14 @@ describe("chart db mappers", () => {
     ).toEqual({
       user_id: "user-1",
       layout_id: "layout-1",
+      cohort_id: null,
       name: "Monday chart",
       assignments: {
         "1,1": "student-1",
       },
-      locked_seats: ["1,1"],
+      locked_seats: { "1,1": "student-1" },
       score: 92,
+      seed: 456,
       stale: false,
       stale_reasons: [],
     });
@@ -78,7 +86,11 @@ describe("chart db mappers", () => {
     ]);
   });
 
-  it("preserves locked seat arrays", () => {
-    expect(rowToChart(row).lockedSeats).toEqual(["1,1"]);
+  it("preserves locked seat records", () => {
+    expect(rowToChart(row).lockedSeats).toEqual({ "1,1": "student-1" });
+  });
+
+  it("allows charts with no cohort association", () => {
+    expect(rowToChart({ ...row, cohort_id: null }).cohortId).toBeNull();
   });
 });

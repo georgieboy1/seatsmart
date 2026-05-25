@@ -1,13 +1,13 @@
-export type LockedSeat = string;
-
 export type SeatingChart = {
   id: string;
   userId: string;
   layoutId: string;
+  cohortId?: string | null;
   name: string;
   assignments: Record<string, string>;
-  lockedSeats: LockedSeat[];
+  lockedSeats: Record<string, string>;
   score: number | null;
+  seed: number;
   stale: boolean;
   staleReasons: string[];
   createdAt: string;

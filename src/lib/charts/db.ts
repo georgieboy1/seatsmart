@@ -4,10 +4,12 @@ export type ChartRow = {
   id: string;
   user_id: string;
   layout_id: string;
+  cohort_id: string | null;
   name: string;
   assignments: Record<string, string>;
-  locked_seats: string[];
+  locked_seats: Record<string, string>;
   score: number | null;
+  seed: number;
   stale: boolean;
   stale_reasons: string[];
   created_at: string;
@@ -21,10 +23,12 @@ export function rowToChart(row: ChartRow): SeatingChart {
     id: row.id,
     userId: row.user_id,
     layoutId: row.layout_id,
+    cohortId: row.cohort_id,
     name: row.name,
     assignments: row.assignments,
-    lockedSeats: row.locked_seats,
+    lockedSeats: row.locked_seats ?? {},
     score: row.score,
+    seed: row.seed ?? 0,
     stale: row.stale,
     staleReasons: row.stale_reasons,
     createdAt: row.created_at,
@@ -36,10 +40,12 @@ export function chartToInsert(chart: NewSeatingChart, userId: string): ChartInse
   return {
     user_id: userId,
     layout_id: chart.layoutId,
+    cohort_id: chart.cohortId ?? null,
     name: chart.name,
     assignments: chart.assignments,
     locked_seats: chart.lockedSeats,
     score: chart.score,
+    seed: chart.seed,
     stale: chart.stale,
     stale_reasons: chart.staleReasons,
   };
