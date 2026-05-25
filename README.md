@@ -2,11 +2,17 @@
 
 Classroom seating, automated. Teachers model their room once, enter their roster with relevant traits, and get an optimized seating chart in seconds — with drag-and-drop fine-tuning.
 
-> **Status:** Early development. Phase 1 (foundation + auth) complete.
+> **Status:** Phase 5 complete, Phase 6 in progress.
 
-## Why
+## Features
 
-Teachers spend 2–4 hours per term arranging seating charts by hand, balancing accommodations, peer dynamics, behavior, and physical room constraints. SeatSmart automates the constraint-solving part so that work shrinks to minutes — and lets the teacher fine-tune the result by hand from there.
+- **Classroom Layout Builder:** Model your physical room with seats, doors, windows, and more.
+- **Student Roster:** Manage students with prosocial/antisocial traits and specific accommodations.
+- **Smart Seating Algorithm:** Greedy + local optimization algorithm that respects accommodations and peer dynamics.
+- **Interactive Fine-tuning:** Drag-and-drop students to swap seats, and lock students into specific positions.
+- **Stale Chart Detection:** Automatically flags charts that need updating when roster or layout data changes.
+- **Export Options:** Download your charts as PNG (for printing), CSV (for grading), or JSON.
+- **Privacy First:** Data owned by the teacher, secured with Supabase Row Level Security.
 
 See [`docs/SPEC.md`](docs/SPEC.md) for the full v1.0 product specification.
 

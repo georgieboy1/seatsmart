@@ -43,6 +43,11 @@ These rules are non-negotiable. See §9 of the spec for full context.
 - **Never silently drop data.** When a referenced student or seat position disappears, the seat renders as empty with a warning indicator — the underlying assignment stays in the DB until the user explicitly regenerates or clears.
 - **Algorithm placements must record their reasons.** Every seat in a generated chart carries an `explanations[]` array (see SPEC §6.4). Seat tooltips and the issues panel both read from this — do not duplicate the logic in the UI.
 
+## Architectural Decisions
+
+- **Cohorts are optional but encouraged.** Although §1 of the spec suggests one user = one class, we've implemented an intermediate 'Cohort' layer to support multi-class management. To preserve the "one class" UX, chart generation does NOT require a cohort; users can select "All Students (No Cohort)" to skip the grouping logic.
+- **Manual score invalidation.** Any manual swap in the seating chart view clears the algorithmically generated score and explanations. This ensures the UI doesn't display stale or misleading metrics after the user has manually overridden the optimized layout.
+
 ## What's in `/reference`
 
 Old WordPress plugin code with the same product idea. Use it for feature scope and visual reference only. Do NOT port it line-by-line — it has real bugs and mixed responsibilities. Architect the new version cleanly from the spec.
