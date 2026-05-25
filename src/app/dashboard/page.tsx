@@ -31,6 +31,9 @@ export default async function DashboardPage() {
         <Button asChild>
           <Link href="/layouts">Classroom layouts</Link>
         </Button>
+        <Button asChild variant="outline">
+          <Link href="/students">Students</Link>
+        </Button>
         <form action={logout}>
           <Button type="submit" variant="outline">
             Log out
