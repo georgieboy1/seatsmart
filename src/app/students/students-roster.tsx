@@ -4,15 +4,18 @@ import { useState } from "react";
 import type { Student } from "@/lib/types/student";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CsvImportModal } from "./csv-import-modal";
 import { StudentFormModal } from "./student-form-modal";
 import { StudentsList } from "./students-list";
 
 export function StudentsRoster({ students }: { students: Student[] }) {
   const [modalStudent, setModalStudent] = useState<Student | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const closeModal = () => {
     setIsAdding(false);
+    setIsImporting(false);
     setModalStudent(null);
   };
 
@@ -31,7 +34,11 @@ export function StudentsRoster({ students }: { students: Student[] }) {
           <Button onClick={() => setIsAdding(true)} type="button">
             Add student
           </Button>
-          <Button disabled variant="outline" title="CSV import lands in Commit 3.6">
+          <Button
+            onClick={() => setIsImporting(true)}
+            type="button"
+            variant="outline"
+          >
             Import CSV
           </Button>
           <Button disabled variant="outline" title="CSV export lands in Commit 3.7">
@@ -49,6 +56,8 @@ export function StudentsRoster({ students }: { students: Student[] }) {
           onClose={closeModal}
         />
       )}
+
+      {isImporting && <CsvImportModal onClose={closeModal} />}
     </>
   );
 }

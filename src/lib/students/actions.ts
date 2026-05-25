@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Student } from "@/lib/types/student";
+import { parseStudentsCsv } from "./csv";
 import { rowToStudent, studentToInsert, type StudentRow } from "./db";
 import { studentCreateSchema, studentUpdateSchema } from "./schemas";
 
@@ -60,6 +61,43 @@ export async function createStudent(formData: FormData) {
 
   revalidatePath("/students");
   redirect("/students");
+}
+
+export async function importStudentsCsv(formData: FormData) {
+  const file = formData.get("csv");
+
+  if (!(file instanceof File) || file.size === 0) {
+    redirect("/students?error=Choose+a+CSV+file+to+import");
+  }
+
+  let students;
+  try {
+    students = parseStudentsCsv(await file.text());
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Invalid CSV";
+    redirect(`/students?error=${encodeURIComponent(message)}`);
+  }
+
+  if (students.length === 0) {
+    redirect("/students?error=CSV+does+not+contain+any+student+rows");
+  }
+
+  const { supabase, userId } = await requireUser();
+
+  const { error } = await supabase
+    .from("students")
+    .insert(students.map((student) => studentToInsert(student, userId)));
+
+  if (error) {
+    redirect(`/students?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/students");
+  redirect(
+    `/students?success=${encodeURIComponent(
+      `Imported ${students.length} student${students.length === 1 ? "" : "s"}`,
+    )}`,
+  );
 }
 
 export async function listStudents(): Promise<Student[]> {

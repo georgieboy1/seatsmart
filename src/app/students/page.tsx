@@ -3,14 +3,14 @@ import { StudentsRoster } from "./students-roster";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ error?: string }>;
+type SearchParams = Promise<{ error?: string; success?: string }>;
 
 export default async function StudentsPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const { error } = await searchParams;
+  const { error, success } = await searchParams;
   const students = await listStudents();
 
   return (
@@ -27,6 +27,12 @@ export default async function StudentsPage({
       {error && (
         <p className="mb-4 text-sm text-destructive" role="alert">
           {error}
+        </p>
+      )}
+
+      {success && (
+        <p className="mb-4 text-sm text-emerald-700" role="status">
+          {success}
         </p>
       )}
 

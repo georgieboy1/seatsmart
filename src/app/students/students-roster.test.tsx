@@ -150,4 +150,19 @@ describe("StudentsRoster", () => {
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
+
+  it("opens the CSV import modal", () => {
+    render(<StudentsRoster students={[]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /import csv/i }));
+
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByRole("heading", { name: /import students from csv/i }),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByLabelText(/csv file/i)).toHaveAttribute(
+      "type",
+      "file",
+    );
+  });
 });
