@@ -56,15 +56,20 @@ describe("createTraditionalGrid", () => {
 });
 
 describe("createGroupsGrid", () => {
-  it("returns a grid of dimensions (numGroups * 2 + 1) × (studentsPerGroup + 2)", () => {
+  it("returns a grid with balanced pod clustering", () => {
+    // 4 groups of 4 students
+    // podWidth = 2, podHeight = 2
+    // numColsPods = 2, numRowsPods = 2
+    // totalCols = 2 * (2 + 1) + 1 = 7
+    // totalRows = 2 * (2 + 1) + 1 = 7
     const grid = createGroupsGrid(4, 4);
-    expect(grid.length).toBe(9);
-    expect(grid[0].length).toBe(6);
+    expect(grid.length).toBe(7);
+    expect(grid[0].length).toBe(7);
   });
 
   it("places exactly numGroups × studentsPerGroup seats", () => {
-    const grid = createGroupsGrid(4, 4);
-    expect(countCells(grid, "seat")).toBe(4 * 4);
+    const grid = createGroupsGrid(6, 4);
+    expect(countCells(grid, "seat")).toBe(6 * 4);
   });
 
   it("places exactly one teacher desk on the top perimeter", () => {
@@ -73,28 +78,39 @@ describe("createGroupsGrid", () => {
     expect(grid[0].some((cell) => cell === "teacher_desk")).toBe(true);
   });
 
-  it("places walls in every separator row", () => {
-    const grid = createGroupsGrid(3, 4);
-    // Separator rows are at even indices (0, 2, 4, 6).
-    for (const r of [0, 2, 4, 6]) {
-      for (const cell of grid[r]) {
-        expect(cell === "perimeter" || cell === "teacher_desk").toBe(true);
+  it("ensures walking space between pods", () => {
+    const grid = createGroupsGrid(4, 4);
+    // In a 2x2 pod layout of 4 pods, the middle row (index 3) and column (index 3)
+    // should be entirely perimeter/walking space.
+    for (let c = 0; c < grid[0].length; c++) {
+      expect(grid[3][c]).toBe("perimeter");
+    }
+    for (let r = 0; r < grid.length; r++) {
+      if (grid[r][3] !== "teacher_desk") {
+        expect(grid[r][3]).toBe("perimeter");
       }
     }
   });
 
   it("handles the smallest valid layout (1 group, 1 student)", () => {
     const grid = createGroupsGrid(1, 1);
+    // podWidth=1, podHeight=1, numColsPods=1, numRowsPods=1
+    // totalCols = 1*(1+1)+1 = 3
+    // totalRows = 1*(1+1)+1 = 3
     expect(grid.length).toBe(3);
     expect(grid[0].length).toBe(3);
     expect(grid[1][1]).toBe("seat");
   });
 
-  it("handles the largest typical layout (12 groups, 8 students)", () => {
-    const grid = createGroupsGrid(12, 8);
-    expect(grid.length).toBe(25);
-    expect(grid[0].length).toBe(10);
-    expect(countCells(grid, "seat")).toBe(96);
+  it("handles larger group sizes with 3-wide pods", () => {
+    const grid = createGroupsGrid(2, 6);
+    // studentsPerGroup = 6 -> podWidth = 3, podHeight = 2
+    // numGroups = 2 -> numColsPods = 2, numRowsPods = 1
+    // totalCols = 2 * (3 + 1) + 1 = 9
+    // totalRows = 1 * (2 + 1) + 1 = 4
+    expect(grid.length).toBe(4);
+    expect(grid[0].length).toBe(9);
+    expect(countCells(grid, "seat")).toBe(12);
   });
 });
 

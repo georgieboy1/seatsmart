@@ -164,8 +164,30 @@ export async function updateLayout(id: string, formData: FormData) {
     redirect(`/layouts/${id}?error=${encodeURIComponent(error.message)}`);
   }
 
+  // Mark all charts using this layout as stale
+  // Note: For v1, we fetch and update individually to keep it simple.
+  const { data: chartsToMark } = await supabase
+    .from("seating_charts")
+    .select("id, stale_reasons")
+    .eq("layout_id", id);
+
+  if (chartsToMark && chartsToMark.length > 0) {
+    await Promise.all(
+      chartsToMark.map((chart) => {
+        const reasons = Array.from(
+          new Set([...chart.stale_reasons, "layout was updated"]),
+        );
+        return supabase
+          .from("seating_charts")
+          .update({ stale: true, stale_reasons: reasons })
+          .eq("id", chart.id);
+      }),
+    );
+  }
+
   revalidatePath("/layouts");
   revalidatePath(`/layouts/${id}`);
+  revalidatePath("/charts");
 }
 
 export async function duplicateLayout(id: string) {
@@ -213,6 +235,26 @@ export async function duplicateLayout(id: string) {
 
 export async function deleteLayout(id: string) {
   const { supabase, userId } = await requireUser();
+
+  // Check if layout is in use
+  const { count, error: countError } = await supabase
+    .from("seating_charts")
+    .select("*", { count: "exact", head: true })
+    .eq("layout_id", id);
+
+  if (countError) {
+    redirect(`/layouts?error=${encodeURIComponent(countError.message)}`);
+  }
+
+  if (count && count > 0) {
+    redirect(
+      `/layouts?error=${encodeURIComponent(
+        `This layout is used by ${count} chart${
+          count === 1 ? "" : "s"
+        }. Delete or duplicate them first.`,
+      )}`,
+    );
+  }
 
   const { error } = await supabase
     .from("layouts")
