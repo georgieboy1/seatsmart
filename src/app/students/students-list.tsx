@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import type { Student } from "@/lib/types/student";
 import {
   ACCOMMODATIONS,
@@ -60,7 +61,13 @@ function RelatedStudents({
   );
 }
 
-export function StudentsList({ students }: { students: Student[] }) {
+export function StudentsList({
+  students,
+  onEdit,
+}: {
+  students: Student[];
+  onEdit?: (student: Student) => void;
+}) {
   if (students.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-12 text-center">
@@ -120,7 +127,17 @@ export function StudentsList({ students }: { students: Student[] }) {
               <td className="px-3 py-3 align-top">
                 <RelatedStudents ids={student.avoid} studentsById={studentsById} />
               </td>
-              <td className="px-3 py-3 text-muted-foreground">Edit · Delete</td>
+              <td className="px-3 py-3">
+                <Button
+                  disabled={!onEdit}
+                  onClick={() => onEdit?.(student)}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  Edit
+                </Button>
+              </td>
             </tr>
           ))}
         </tbody>
