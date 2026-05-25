@@ -77,6 +77,9 @@ describe("layoutToInsert", () => {
       num_groups: 4,
       attendees_per_group: 4,
       grid: [["seat"]],
+      // venue_id defaults to null when the NewLayout doesn't provide one.
+      // See 0009_marketplace.sql + layoutToInsert in db.ts.
+      venue_id: null,
     });
   });
 });

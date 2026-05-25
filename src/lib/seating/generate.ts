@@ -1,10 +1,22 @@
 import type { ClassroomLayout } from "@/lib/types/layout";
 import type { Attendee } from "@/lib/types/attendee";
-import { parsePositionKey } from "./geometry";
+import { parsePositionKey, positionKey } from "./geometry";
+import { identifyAnchors, rankByTogetherCentrality } from "./anchors";
+import { computePodMap } from "./distance";
+import {
+  isSeatFeasible,
+  separationConstraints,
+  type SeparationConstraint,
+} from "./separation";
 import { placeDietaryAccessibilityAttendees } from "./phase1";
 import { placeRemainingAttendees } from "./phase2";
 import { optimizeSeatSwaps } from "./phase3";
-import type { GenerationOptions, SeatingIssue, SeatingResult } from "./types";
+import type {
+  GenerationOptions,
+  SeatExplanation,
+  SeatingIssue,
+  SeatingResult,
+} from "./types";
 
 const DEFAULT_OPTIONS: GenerationOptions = {
   honorDietaryAccessibility: true,
@@ -13,6 +25,7 @@ const DEFAULT_OPTIONS: GenerationOptions = {
   spreadAntisocialTraits: true,
   lockedSeats: {},
   seed: 0,
+  minDistance: 2,
 };
 
 function clampScore(score: number): number {
@@ -29,6 +42,7 @@ function mergeOptions(options: GenerationOptions): GenerationOptions {
     ...DEFAULT_OPTIONS,
     ...options,
     lockedSeats: options.lockedSeats ?? {},
+    minDistance: options.minDistance ?? DEFAULT_OPTIONS.minDistance,
   };
 }
 
@@ -39,19 +53,110 @@ function attendeesForPhase1(
   if (options.honorDietaryAccessibility) {
     return attendees;
   }
-
   return attendees.map((attendee) => ({ ...attendee, constraints: [] }));
 }
 
-function separateIdsViolationIssues(
+/**
+ * Phase 0 — Anchor Binding.
+ *
+ * Pre-bind the highest-centrality attendees to derived anchor seats so
+ * tightly-linked social clusters cohere around natural focal points
+ * (front of classroom; head table at a banquet).
+ *
+ * Rules:
+ *   - Only fires when anchor seats exist AND at least one attendee has
+ *     non-zero together-degree. Otherwise returns no placements.
+ *   - Locked seats are honored — an anchor that's already locked is
+ *     skipped.
+ *   - Separation constraints are respected — an attendee that would
+ *     conflict with an already-anchored attendee at the proposed seat
+ *     is skipped in favor of the next-most-central attendee.
+ *   - Accommodations are NOT checked at this phase; Phase 1 placement
+ *     for non-anchored attendees still happens normally. An anchored
+ *     attendee with accommodations may end up sub-optimally placed —
+ *     this is an accepted v0 trade-off and is surfaced via explanation.
+ */
+function bindAnchors(
+  attendees: Attendee[],
+  layout: ClassroomLayout,
+  lockedSeats: Record<string, string>,
+  constraints: SeparationConstraint[],
+  podMap: Map<string, number>,
+): {
+  assignments: Record<string, string>;
+  explanations: Record<string, SeatExplanation[]>;
+  bound: number;
+} {
+  const assignments: Record<string, string> = {};
+  const explanations: Record<string, SeatExplanation[]> = {};
+
+  const anchors = identifyAnchors(layout);
+  if (anchors.length === 0) {
+    return { assignments, explanations, bound: 0 };
+  }
+
+  const ranked = rankByTogetherCentrality(attendees);
+  if (ranked.length === 0) {
+    return { assignments, explanations, bound: 0 };
+  }
+
+  const lockedKeys = new Set(Object.keys(lockedSeats));
+  const lockedAttendeeIds = new Set(Object.values(lockedSeats));
+  const placedAttendeeIds = new Set<string>(lockedAttendeeIds);
+
+  for (const anchorPos of anchors) {
+    const seatKey = positionKey(anchorPos);
+    if (lockedKeys.has(seatKey)) continue;
+    if (assignments[seatKey]) continue;
+
+    // Find the highest-centrality attendee who hasn't been placed yet
+    // AND who wouldn't violate a separation constraint at this seat.
+    const candidate = ranked.find((entry) => {
+      if (placedAttendeeIds.has(entry.attendee.id)) return false;
+      // Build a combined view (locked + already-bound) to feasibility-check against
+      const combined = { ...lockedSeats, ...assignments };
+      return isSeatFeasible(
+        seatKey,
+        entry.attendee.id,
+        combined,
+        constraints,
+        layout,
+        podMap,
+      );
+    });
+
+    if (!candidate) break; // no more eligible high-centrality attendees
+
+    assignments[seatKey] = candidate.attendee.id;
+    placedAttendeeIds.add(candidate.attendee.id);
+    explanations[seatKey] = [
+      {
+        rule: "anchor_proximity",
+        weight: 15,
+        reason: `${candidate.attendee.name} is at an anchor seat: highest social centrality with ${candidate.centrality} together-link${candidate.centrality === 1 ? "" : "s"} in this roster.`,
+      },
+    ];
+  }
+
+  return { assignments, explanations, bound: Object.keys(assignments).length };
+}
+
+function strictlySeparateViolationIssues(
   attendees: Attendee[],
   assignments: Record<string, string>,
+  respect: boolean,
 ): SeatingIssue[] {
-  const attendeesById = new Map(attendees.map((attendee) => [attendee.id, attendee]));
-  const placed = Object.entries(assignments).map(([seatKey, externalId]) => ({
+  // After phase 3, surface any *adjacency* of separate-list pairs as
+  // warnings. Hard min-distance violations are already surfaced as
+  // errors during placement; this catches the legacy soft-adjacency
+  // warning UI consumers expect.
+  if (!respect) return [];
+
+  const attendeesById = new Map(attendees.map((a) => [a.id, a]));
+  const placed = Object.entries(assignments).map(([seatKey, attendeeId]) => ({
     seatKey,
     position: parsePositionKey(seatKey),
-    attendee: attendeesById.get(externalId),
+    attendee: attendeesById.get(attendeeId),
   }));
   const issues: SeatingIssue[] = [];
 
@@ -65,12 +170,13 @@ function separateIdsViolationIssues(
         Math.abs(placed[i].position.row - placed[j].position.row) <= 1 &&
         Math.abs(placed[i].position.column - placed[j].position.column) <= 1 &&
         placed[i].seatKey !== placed[j].seatKey;
-      const separateIdsMatch = a.separateIds.includes(b.id) || b.separateIds.includes(a.id);
+      const separateMatch =
+        a.separateIds.includes(b.id) || b.separateIds.includes(a.id);
 
-      if (adjacent && separateIdsMatch) {
+      if (adjacent && separateMatch) {
         issues.push({
           severity: "warning",
-          message: `${a.name} and ${b.name} are on an separateIds list but sit adjacent.`,
+          message: `${a.name} and ${b.name} are on a separate-list but sit adjacent.`,
           externalIds: [a.id, b.id],
         });
       }
@@ -86,50 +192,102 @@ export function generateSeating(
   options: GenerationOptions,
 ): SeatingResult {
   const mergedOptions = mergeOptions(options);
+
+  // Pre-compute geometry + constraint set
+  const podMap = computePodMap(classroom);
+  const constraints = mergedOptions.respectStrictlySeparate
+    ? separationConstraints(attendees, mergedOptions.minDistance ?? 2)
+    : [];
+
+  // Phase 0 — Anchor binding
+  const phase0Started = performance.now();
+  const phase0 = bindAnchors(
+    attendees,
+    classroom,
+    mergedOptions.lockedSeats ?? {},
+    constraints,
+    podMap,
+  );
+  const phase0Time = performance.now() - phase0Started;
+
+  // Phase 1 — Accommodation placement.
+  // Anchor placements are passed through as if they were locked, so
+  // phase 1 doesn't try to place those attendees elsewhere.
   const phase1Started = performance.now();
+  const phase1LockedSeats = {
+    ...(mergedOptions.lockedSeats ?? {}),
+    ...phase0.assignments,
+  };
   const phase1 = placeDietaryAccessibilityAttendees(
     attendeesForPhase1(attendees, mergedOptions),
     classroom,
-    mergedOptions.lockedSeats,
+    phase1LockedSeats,
+    constraints,
+    podMap,
   );
+  // Merge phase 0 explanations into phase 1's seat map
+  const mergedPhase1Explanations: Record<string, SeatExplanation[]> = {
+    ...phase1.explanations,
+  };
+  for (const [seatKey, items] of Object.entries(phase0.explanations)) {
+    mergedPhase1Explanations[seatKey] = [
+      ...(mergedPhase1Explanations[seatKey] ?? []),
+      ...items,
+    ];
+  }
   const phase1Time = performance.now() - phase1Started;
 
+  // Phase 2 — Place remaining attendees with relationship scoring
   const phase2Started = performance.now();
   const phase2 = placeRemainingAttendees({
     attendees,
     assignments: phase1.assignments,
     placedAttendeeIds: phase1.placedAttendeeIds,
     availableSeatKeys: phase1.availableSeatKeys,
-    explanations: phase1.explanations,
+    explanations: mergedPhase1Explanations,
+    layout: classroom,
+    podMap,
+    constraints,
   });
   const phase2Time = performance.now() - phase2Started;
 
+  // Phase 3 — Local optimization via seat swaps
   const phase3 = optimizeSeatSwaps({
     attendees,
     assignments: phase2.assignments,
     explanations: phase2.explanations,
-    lockedSeatKeys: new Set(Object.keys(mergedOptions.lockedSeats ?? {})),
+    lockedSeatKeys: new Set([
+      ...Object.keys(mergedOptions.lockedSeats ?? {}),
+      ...Object.keys(phase0.assignments),
+    ]),
     maxIterations: 100,
+    layout: classroom,
+    podMap,
+    constraints,
   });
 
-  const issues = [
+  const issues: SeatingIssue[] = [
     ...phase1.issues,
     ...phase2.issues,
-    ...(mergedOptions.respectStrictlySeparate
-      ? separateIdsViolationIssues(attendees, phase3.assignments)
-      : []),
+    ...strictlySeparateViolationIssues(
+      attendees,
+      phase3.assignments,
+      mergedOptions.respectStrictlySeparate,
+    ),
   ];
 
   return {
     assignments: phase3.assignments,
     score: finalScore(phase3.score, issues),
     issues,
-    explanations: phase3.explanations,
+    explanationsBySeat: phase3.explanations,
     debug: {
+      phase0Time,
       phase1Time,
       phase2Time,
       swapsAttempted: phase3.swapsAttempted,
       swapsAccepted: phase3.swapsAccepted,
+      anchorsBound: phase0.bound,
     },
   };
 }

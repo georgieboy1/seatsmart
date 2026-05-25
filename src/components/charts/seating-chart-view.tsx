@@ -118,7 +118,7 @@ export function SeatingChartView({
     setAssignments(result.assignments);
     setScore(result.score);
     setIssues(result.issues);
-    setExplanations(result.explanations);
+    setExplanations(result.explanationsBySeat);
     setIsStale(false);
   }, [attendees, layout, options, lockedSeats]);
 
@@ -368,11 +368,14 @@ export function SeatingChartView({
             <div className="space-y-3">
               {GENERATION_OPTION_CONTROLS.map((opt) => (
                 <div key={opt.id} className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={opt.id} 
-                    checked={options[opt.id]}
-                    onCheckedChange={(checked) => 
-                      setOptions(prev => ({ ...prev, [opt.id]: !!checked }))
+                  <Checkbox
+                    id={opt.id}
+                    // GenerationOptions has both bool fields (these) and
+                    // a number field (minDistance); the indexed-access
+                    // type widens, so narrow back to boolean here.
+                    checked={Boolean(options[opt.id])}
+                    onCheckedChange={(checked) =>
+                      setOptions((prev) => ({ ...prev, [opt.id]: !!checked }))
                     }
                   />
                   <Label htmlFor={opt.id} className="text-sm font-normal cursor-pointer">

@@ -1,5 +1,10 @@
+import type { ClassroomLayout } from "@/lib/types/layout";
 import type { Attendee } from "@/lib/types/attendee";
 import { explainAssignments, scoreSeatingRelationships } from "./scoring";
+import {
+  checkSeparation,
+  type SeparationConstraint,
+} from "./separation";
 import type { SeatExplanation } from "./types";
 
 export type Phase3Input = {
@@ -8,6 +13,10 @@ export type Phase3Input = {
   explanations: Record<string, SeatExplanation[]>;
   lockedSeatKeys?: Set<string>;
   maxIterations?: number;
+  /** When provided, swaps that introduce NEW separation violations are rejected. */
+  layout?: ClassroomLayout;
+  podMap?: Map<string, number>;
+  constraints?: SeparationConstraint[];
 };
 
 export type Phase3Result = {
@@ -15,6 +24,7 @@ export type Phase3Result = {
   explanations: Record<string, SeatExplanation[]>;
   swapsAttempted: number;
   swapsAccepted: number;
+  swapsRejectedForSeparation: number;
   score: number;
 };
 
@@ -35,16 +45,25 @@ export function optimizeSeatSwaps(input: Phase3Input): Phase3Result {
   let score = scoreSeatingRelationships(input.attendees, assignments).score;
   let swapsAttempted = 0;
   let swapsAccepted = 0;
+  let swapsRejectedForSeparation = 0;
   const maxIterations = input.maxIterations ?? 100;
   const lockedSeatKeys = input.lockedSeatKeys ?? new Set<string>();
+  const layout = input.layout;
+  const podMap = input.podMap ?? new Map<string, number>();
+  const constraints = input.constraints ?? [];
 
   const swappableSeatKeys = Object.keys(assignments)
     .filter((seatKey) => !lockedSeatKeys.has(seatKey))
     .toSorted();
 
+  let currentViolations = layout
+    ? checkSeparation(assignments, constraints, layout, podMap).length
+    : 0;
+
   for (let iteration = 0; iteration < maxIterations; iteration += 1) {
     let bestAssignments = assignments;
     let bestScore = score;
+    let bestViolations = currentViolations;
     let improved = false;
 
     for (let i = 0; i < swappableSeatKeys.length; i += 1) {
@@ -56,6 +75,31 @@ export function optimizeSeatSwaps(input: Phase3Input): Phase3Result {
           swappableSeatKeys[i],
           swappableSeatKeys[j],
         );
+
+        // Separation gate: reject swaps that introduce NEW violations.
+        // Swaps that reduce violations OR keep them constant proceed to
+        // the score comparison.
+        if (layout && constraints.length > 0) {
+          const candidateViolations = checkSeparation(
+            candidate,
+            constraints,
+            layout,
+            podMap,
+          ).length;
+          if (candidateViolations > currentViolations) {
+            swapsRejectedForSeparation += 1;
+            continue;
+          }
+          // Prefer swaps that strictly reduce violations even at lower score.
+          if (candidateViolations < bestViolations) {
+            bestAssignments = candidate;
+            bestScore = scoreSeatingRelationships(input.attendees, candidate).score;
+            bestViolations = candidateViolations;
+            improved = true;
+            continue;
+          }
+        }
+
         const candidateScore = scoreSeatingRelationships(
           input.attendees,
           candidate,
@@ -75,6 +119,7 @@ export function optimizeSeatSwaps(input: Phase3Input): Phase3Result {
 
     assignments = bestAssignments;
     score = bestScore;
+    currentViolations = bestViolations;
     swapsAccepted += 1;
   }
 
@@ -90,6 +135,7 @@ export function optimizeSeatSwaps(input: Phase3Input): Phase3Result {
     explanations,
     swapsAttempted,
     swapsAccepted,
+    swapsRejectedForSeparation,
     score,
   };
 }

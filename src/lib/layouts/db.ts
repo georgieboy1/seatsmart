@@ -2,6 +2,7 @@ import type {
   CellType,
   ClassroomLayout,
   LayoutType,
+  NewLayout,
 } from "@/lib/types/layout";
 
 export type LayoutRow = {
@@ -14,6 +15,7 @@ export type LayoutRow = {
   num_groups: number | null;
   attendees_per_group: number | null;
   grid: CellType[][];
+  venue_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -31,13 +33,14 @@ export function rowToLayout(row: LayoutRow): ClassroomLayout {
     numGroups: row.num_groups,
     attendeesPerGroup: row.attendees_per_group,
     grid: row.grid,
+    venueId: row.venue_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
 export function layoutToInsert(
-  layout: Omit<ClassroomLayout, "id" | "userId" | "createdAt" | "updatedAt">,
+  layout: NewLayout,
   userId: string,
 ): LayoutInsert {
   return {
@@ -49,5 +52,6 @@ export function layoutToInsert(
     num_groups: layout.numGroups,
     attendees_per_group: layout.attendeesPerGroup,
     grid: layout.grid,
+    venue_id: layout.venueId ?? null,
   };
 }
