@@ -7,6 +7,7 @@ import {
   type ProsocialTrait,
 } from "./constants";
 import type { StudentCreateInput } from "./schemas";
+import type { Student } from "@/lib/types/student";
 
 type CsvRow = {
   [header: string]: string;
@@ -174,4 +175,30 @@ export function parseStudentsCsv(csv: string): StudentCreateInput[] {
       notes: null,
     };
   });
+}
+
+function escapeCsvCell(value: string): string {
+  if (!/[",\n\r]/.test(value)) {
+    return value;
+  }
+
+  return `"${value.replaceAll('"', '""')}"`;
+}
+
+function serializeList(values: readonly string[]): string {
+  return values.join("; ");
+}
+
+export function serializeStudentsCsv(students: Student[]): string {
+  const rows = [
+    ["name", "prosocial", "antisocial", "accommodations"],
+    ...students.map((student) => [
+      student.name,
+      serializeList(student.prosocialTraits),
+      serializeList(student.antisocialTraits),
+      serializeList(student.accommodations),
+    ]),
+  ];
+
+  return `${rows.map((row) => row.map(escapeCsvCell).join(",")).join("\n")}\n`;
 }

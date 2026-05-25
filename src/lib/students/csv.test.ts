@@ -1,5 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { parseStudentsCsv } from "./csv";
+import type { Student } from "@/lib/types/student";
+import { parseStudentsCsv, serializeStudentsCsv } from "./csv";
+
+function makeStudent(overrides: Partial<Student> = {}): Student {
+  return {
+    id: "student-1",
+    userId: "user-1",
+    name: "Maya Chen",
+    prosocialTraits: ["helpful", "focused"],
+    antisocialTraits: ["talkative"],
+    accommodations: ["front_of_room"],
+    peerTutors: [],
+    avoid: [],
+    notes: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-02T00:00:00.000Z",
+    ...overrides,
+  };
+}
 
 describe("parseStudentsCsv", () => {
   it("parses the required roster columns", () => {
@@ -72,5 +90,59 @@ describe("parseStudentsCsv", () => {
         ["name,prosocial,antisocial,accommodations", ",helpful,,"].join("\n"),
       ),
     ).toThrow(/row 2: name is required/i);
+  });
+});
+
+describe("serializeStudentsCsv", () => {
+  it("exports an import-compatible CSV", () => {
+    expect(serializeStudentsCsv([makeStudent()])).toBe(
+      [
+        "name,prosocial,antisocial,accommodations",
+        "Maya Chen,helpful; focused,talkative,front_of_room",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("escapes names and values containing commas or quotes", () => {
+    expect(
+      serializeStudentsCsv([
+        makeStudent({
+          name: 'Chen, "Maya"',
+          prosocialTraits: ["helpful"],
+          antisocialTraits: [],
+          accommodations: ["vision_front", "near_teacher"],
+        }),
+      ]),
+    ).toBe(
+      [
+        "name,prosocial,antisocial,accommodations",
+        '"Chen, ""Maya""",helpful,,vision_front; near_teacher',
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("round-trips through the importer for supported columns", () => {
+    const exported = serializeStudentsCsv([
+      makeStudent({
+        name: "Sam Patel",
+        prosocialTraits: ["leader"],
+        antisocialTraits: ["restless"],
+        accommodations: ["near_door", "away_from_window"],
+      }),
+    ]);
+
+    expect(parseStudentsCsv(exported)).toEqual([
+      {
+        name: "Sam Patel",
+        prosocialTraits: ["leader"],
+        antisocialTraits: ["restless"],
+        accommodations: ["near_door", "away_from_window"],
+        peerTutors: [],
+        avoid: [],
+        notes: null,
+      },
+    ]);
   });
 });

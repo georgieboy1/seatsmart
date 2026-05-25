@@ -165,4 +165,13 @@ describe("StudentsRoster", () => {
       "file",
     );
   });
+
+  it("links to CSV export", () => {
+    render(<StudentsRoster students={[]} />);
+
+    expect(screen.getByRole("link", { name: /export csv/i })).toHaveAttribute(
+      "href",
+      "/students/export",
+    );
+  });
 });

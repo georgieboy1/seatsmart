@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type { Student } from "@/lib/types/student";
 import { Button } from "@/components/ui/button";
@@ -41,8 +42,8 @@ export function StudentsRoster({ students }: { students: Student[] }) {
           >
             Import CSV
           </Button>
-          <Button disabled variant="outline" title="CSV export lands in Commit 3.7">
-            Export CSV
+          <Button asChild variant="outline">
+            <Link href="/students/export">Export CSV</Link>
           </Button>
         </div>
       </div>
