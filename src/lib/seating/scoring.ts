@@ -241,3 +241,39 @@ export function scoreSeatingRelationships(
 
   return { score, explanations };
 }
+
+export function explainAssignments(
+  students: Student[],
+  assignments: Record<string, string>,
+): Record<string, SeatExplanation[]> {
+  const studentsById = new Map(students.map((student) => [student.id, student]));
+  const explanations: Record<string, SeatExplanation[]> = {};
+  const placed = Object.entries(assignments)
+    .map(([key, studentId]) => {
+      const student = studentsById.get(studentId);
+      return student ? { key, student, position: parsePositionKey(key) } : null;
+    })
+    .filter((item): item is NonNullable<typeof item> => item != null);
+
+  for (const { key } of placed) {
+    explanations[key] = [];
+  }
+
+  for (let i = 0; i < placed.length; i += 1) {
+    for (let j = i + 1; j < placed.length; j += 1) {
+      const pairScore = scoreRelationshipPair(
+        placed[i].student,
+        placed[i].position,
+        placed[j].student,
+        placed[j].position,
+      );
+
+      if (pairScore.explanations.length === 0) continue;
+
+      explanations[placed[i].key].push(...pairScore.explanations);
+      explanations[placed[j].key].push(...pairScore.explanations);
+    }
+  }
+
+  return explanations;
+}
