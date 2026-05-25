@@ -1,4 +1,4 @@
-# SeatSmart — Product Specification v1.0
+# SynDesk — Product Specification v1.0
 
 An adaptable seating chart tool for classrooms and events. Users model a physical room once, enter attendees with relevant constraints, and generate an optimized seating chart they can fine-tune manually.
 

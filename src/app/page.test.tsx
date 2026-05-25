@@ -3,10 +3,10 @@ import { render, screen } from "@testing-library/react";
 import Home from "./page";
 
 describe("Home page", () => {
-  it("renders the SeatSmart heading", () => {
+  it("renders the SynDesk heading", () => {
     render(<Home />);
     expect(
-      screen.getByRole("heading", { name: /seatsmart/i, level: 1 })
+      screen.getByRole("heading", { name: /syndesk/i, level: 1 })
     ).toBeInTheDocument();
   });
 

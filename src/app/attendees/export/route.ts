@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 
   return new Response(csv, {
     headers: {
-      "Content-Disposition": 'attachment; filename="seatsmart-attendees.csv"',
+      "Content-Disposition": 'attachment; filename="syndesk-attendees.csv"',
       "Content-Type": "text/csv; charset=utf-8",
     },
   });

@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SeatSmart",
+  title: "SynDesk",
   description: "Event & Wedding seating, automated.",
 };
 
@@ -43,7 +43,7 @@ export default async function RootLayout({
         <div className="block lg:hidden bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-xs text-amber-800">
           <div className="flex items-center justify-center gap-2">
             <AlertCircle className="h-3 w-3" />
-            <span>SeatSmart is optimized for desktop. Some features may be limited on mobile.</span>
+            <span>SynDesk is optimized for desktop. Some features may be limited on mobile.</span>
           </div>
         </div>
         <TerminologyProvider workspaceType={workspaceType}>
@@ -55,7 +55,7 @@ export default async function RootLayout({
         </TerminologyProvider>
         <footer className="border-t py-6 text-center text-xs text-muted-foreground bg-muted/20">
           <div className="container mx-auto flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-6">
-            <p>© 2026 SeatSmart</p>
+            <p>© 2026 SynDesk</p>
             <div className="flex gap-4">
               <Link href="/privacy" className="hover:underline">Privacy</Link>
               <Link href="/terms" className="hover:underline">Terms</Link>

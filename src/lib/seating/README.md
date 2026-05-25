@@ -1,4 +1,4 @@
-# SeatSmart Seating Algorithm
+# SynDesk Seating Algorithm
 
 This directory contains the pure TypeScript seating algorithm.
 
@@ -18,7 +18,7 @@ run from a server action, route handler, unit test, or future worker.
 
 ## Why This Approach
 
-SeatSmart uses greedy placement plus local search.
+SynDesk uses greedy placement plus local search.
 
 Classroom rosters are small: usually 20-35 attendees. That is too big for
 exhaustive search, but small enough that we can score many candidate seats and

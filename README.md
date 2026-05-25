@@ -1,4 +1,4 @@
-# SeatSmart
+# SynDesk
 
 Adaptive seating, automated. Educators and event hosts model a room once, enter attendees with relevant constraints, and get an optimized seating chart in seconds — with drag-and-drop fine-tuning.
 

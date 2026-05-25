@@ -19,7 +19,7 @@ export default async function SignupPage({
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">Sign up</h1>
           <p className="text-sm text-muted-foreground">
-            Create your SeatSmart account.
+            Create your SynDesk account.
           </p>
         </div>
         <form action={signUp} className="space-y-4">

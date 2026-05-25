@@ -2,7 +2,7 @@
 
 ## Project
 
-SeatSmart — an open-source seating chart web app for education and events.
+SynDesk — an open-source seating chart web app for education and events.
 Full spec: see `docs/SPEC.md`. Treat that document as the source of truth.
 
 ## My situation

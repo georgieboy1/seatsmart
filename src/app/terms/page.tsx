@@ -6,7 +6,7 @@ export default function TermsPage() {
         <p><strong>Last Updated: May 25, 2026</strong></p>
         <h2 className="text-xl font-semibold mt-6 mb-2">1. Use of Service</h2>
         <p>
-          SeatSmart is provided &quot;as is&quot; for educational purposes. We do not
+          SynDesk is provided &quot;as is&quot; for educational purposes. We do not
           guarantee the absolute optimality of seating charts, as individual
           classroom needs may vary.
         </p>

@@ -19,7 +19,7 @@ export default async function LoginPage({
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">Log in</h1>
           <p className="text-sm text-muted-foreground">
-            Welcome back to SeatSmart.
+            Welcome back to SynDesk.
           </p>
         </div>
         <form action={login} className="space-y-4">

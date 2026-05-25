@@ -5,7 +5,7 @@ export default function PrivacyPage() {
       <div className="prose prose-sm prose-neutral">
         <p><strong>Effective Date: May 25, 2026</strong></p>
         <p>
-          SeatSmart is committed to protecting your privacy. This policy explains
+          SynDesk is committed to protecting your privacy. This policy explains
           how we handle attendee and teacher data.
         </p>
         <h2 className="text-xl font-semibold mt-6 mb-2">1. Data Ownership</h2>
