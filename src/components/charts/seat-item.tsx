@@ -18,9 +18,6 @@ import {
   Ear,
   Ban,
   LucideIcon,
-  Leaf,
-  Wheat,
-  Accessibility,
   AlertTriangle
 } from "lucide-react";
 import { DietaryAccessibility } from "@/lib/students/constants";
@@ -53,7 +50,6 @@ import { cn } from "@/lib/utils";
 import { useTerminology } from "@/components/providers/terminology-provider";
 
 const DIETARY_ACCESSIBILITY_ICONS: Record<DietaryAccessibility, LucideIcon> = {
-  // Education
   near_door: DoorOpen,
   near_teacher: UserRound,
   near_charging: Zap,
@@ -62,15 +58,6 @@ const DIETARY_ACCESSIBILITY_ICONS: Record<DietaryAccessibility, LucideIcon> = {
   hearing_left: Ear,
   hearing_right: Ear,
   away_from_window: Ban,
-  // Events
-  vegan: Leaf,
-  vegetarian: Leaf,
-  "gluten-free": Wheat,
-  "nut-allergy": Ban,
-  "dairy-free": Ban,
-  "wheelchair-access": Accessibility,
-  "low-hearing": Ear,
-  "service-animal": UserRound,
 };
 
 type Props = {

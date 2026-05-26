@@ -20,9 +20,9 @@ const TRADITIONAL_ANCHOR_CELL_TYPES = ["teacher_desk", "whiteboard"] as const;
  * the natural focal points of a classroom.
  *
  * Groups layouts: in each pod, the seat closest to the geometric
- * center of the grid. The "head table" pod gets its center seat as an
- * anchor; far-pod center seats are also anchors. This rewards the
- * social cluster nearest the room's focal point.
+ * center of the grid. The pod nearest the classroom focal point gets
+ * its center seat as an anchor; far-pod center seats are also anchors.
+ * This rewards the social cluster nearest the room's focal point.
  *
  * Returns positions sorted by (row, column) for determinism.
  */

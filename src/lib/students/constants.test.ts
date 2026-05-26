@@ -19,24 +19,16 @@ describe("student constants", () => {
     }
   });
 
-  it("constraints include all 16 expanded spec entries", () => {
+  it("constraints include the education v1 accommodation entries", () => {
     expect(DIETARY_ACCESSIBILITY.map((a) => a.value).slice().sort()).toEqual([
       "away_from_window",
-      "dairy-free",
       "front_of_room",
-      "gluten-free",
       "hearing_left",
       "hearing_right",
-      "low-hearing",
       "near_charging",
       "near_door",
       "near_teacher",
-      "nut-allergy",
-      "service-animal",
-      "vegan",
-      "vegetarian",
       "vision_front",
-      "wheelchair-access",
     ]);
   });
 

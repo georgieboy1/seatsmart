@@ -61,7 +61,7 @@ function studentsForPhase1(
  *
  * Pre-bind the highest-centrality students to derived anchor seats so
  * tightly-linked social clusters cohere around natural focal points
- * (front of classroom; head table at a banquet).
+ * (front of classroom or other teacher-defined focal points).
  *
  * Rules:
  *   - Only fires when anchor seats exist AND at least one student has

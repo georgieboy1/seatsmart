@@ -22,7 +22,7 @@ export type GenerationOptions = {
    * Minimum Chebyshev distance between two students on a separate-list.
    * Default 2 (i.e., not within the 8-neighbor ring). For Groups
    * layouts, "different pod" satisfies the constraint regardless of
-   * physical distance — banquet tables are hard social barriers.
+   * physical distance because separate desk groups are hard social barriers.
    */
   minDistance?: number;
 };

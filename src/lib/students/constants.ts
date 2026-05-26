@@ -17,7 +17,6 @@ export const ANTISOCIAL_TRAITS = [
 ] as const;
 
 export const DIETARY_ACCESSIBILITY = [
-  // Education
   { value: "near_door", label: "Near Door" },
   { value: "near_teacher", label: "Near Teacher" },
   { value: "near_charging", label: "Near Power" },
@@ -26,47 +25,6 @@ export const DIETARY_ACCESSIBILITY = [
   { value: "vision_front", label: "Vision Support" },
   { value: "hearing_left", label: "Hearing Left" },
   { value: "hearing_right", label: "Hearing Right" },
-  // Events
-  {
-    value: "vegan",
-    label: "Vegan",
-    description: "No animal products.",
-  },
-  {
-    value: "vegetarian",
-    label: "Vegetarian",
-    description: "No meat.",
-  },
-  {
-    value: "gluten-free",
-    label: "Gluten-Free",
-    description: "No wheat or gluten products.",
-  },
-  {
-    value: "nut-allergy",
-    label: "Nut-Free",
-    description: "Severe nut allergy.",
-  },
-  {
-    value: "dairy-free",
-    label: "Dairy-Free",
-    description: "Lactose intolerant or no dairy.",
-  },
-  {
-    value: "wheelchair-access",
-    label: "Wheelchair Access",
-    description: "Requires easy access and space for a wheelchair.",
-  },
-  {
-    value: "low-hearing",
-    label: "Hard of Hearing",
-    description: "Needs to be closer to speakers or visual cues.",
-  },
-  {
-    value: "service-animal",
-    label: "Service Animal",
-    description: "Accompanied by a service animal.",
-  },
 ] as const;
 
 export type ProsocialTrait = (typeof PROSOCIAL_TRAITS)[number]["value"];

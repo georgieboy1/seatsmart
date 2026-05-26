@@ -101,9 +101,9 @@ export function computePodMap(layout: ClassroomLayout): Map<string, number> {
 /**
  * Returns true iff two seats satisfy a minimum-separation constraint.
  *
- * - Groups layouts: different pod => satisfied (banquet table is a hard
- *   social barrier; physical distance is irrelevant once at a different
- *   table).
+ * - Groups layouts: different pod => satisfied (separate desk groups are a
+ *   hard social barrier; physical distance is irrelevant once students are in
+ *   different groups).
  * - All layouts: Chebyshev distance >= minDistance => satisfied.
  */
 export function isSufficientlySeparated(

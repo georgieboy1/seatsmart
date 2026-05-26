@@ -16,7 +16,10 @@ select
   to_regclass('public.students') as students_table,
   to_regclass('public.cohorts') as classes_storage_table,
   to_regclass('public.attendees') as legacy_attendees_table,
-  to_regclass('public.guests') as legacy_guests_table;
+  to_regclass('public.guests') as legacy_guests_table,
+  to_regclass('public.venues') as legacy_venues_table,
+  to_regclass('public.vendors') as legacy_vendors_table,
+  to_regclass('public.layout_assets') as legacy_layout_assets_table;
 
 select column_name
 from information_schema.columns
@@ -34,9 +37,13 @@ order by ordinal_position;
 Expected:
 
 - `students_table = public.students`
-- `classes_storage_table = public.cohorts`
+- `classes_storage_table = public.cohorts` (the app calls these Classes; the
+  storage table keeps the original name to avoid a risky foreign-key rename)
 - `legacy_attendees_table` is null
 - `legacy_guests_table` is null
+- `legacy_venues_table` is null
+- `legacy_vendors_table` is null
+- `legacy_layout_assets_table` is null
 - `students` includes `external_id`, `age`, `family_name`, `constraints`,
   `allergies`, `health_flags`, `together_ids`, and `separate_ids`
 - `layouts` includes `students_per_group`
@@ -64,6 +71,12 @@ E2E_TEST_PASSWORD=
 
 For CI, add those two values as encrypted secrets. The authenticated Playwright
 happy path skips itself when these variables are missing.
+
+Run the authenticated happy path locally with:
+
+```bash
+npm run e2e:auth
+```
 
 ## 3. Desktop Teacher Walkthrough
 

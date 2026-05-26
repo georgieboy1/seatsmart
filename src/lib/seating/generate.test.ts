@@ -176,7 +176,7 @@ describe("generateSeating", () => {
     expect(second.issues).toEqual(first.issues);
   });
 
-  // ===== Phase 0 / Marketplace upgrade tests =====
+  // ===== Phase 0 / anchor binding tests =====
 
   it("binds the highest-centrality student to an anchor seat", () => {
     // Layout with a teacher_desk in row 0; seats below.

@@ -80,9 +80,9 @@ begin
   end if;
 end $$;
 
--- Education v1 does not surface the marketplace/venue experiment. Keep this
--- non-destructive: detach layouts from venues if that legacy column exists,
--- but do not drop marketplace tables that may already contain local test data.
+-- Education v1 removes the marketplace/venue experiment from the beta schema.
+-- This is intentionally a pre-beta cleanup migration: old venue/vendor test
+-- data is discarded so fresh projects expose only the classroom product.
 do $$
 begin
   if exists (
@@ -95,5 +95,9 @@ begin
       drop column venue_id;
   end if;
 end $$;
+
+drop table if exists public.layout_assets;
+drop table if exists public.vendors;
+drop table if exists public.venues;
 
 notify pgrst, 'reload schema';
