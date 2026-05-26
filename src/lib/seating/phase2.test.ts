@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { Attendee } from "@/lib/types/attendee";
-import { placeRemainingAttendees } from "./phase2";
+import type { Student } from "@/lib/types/student";
+import { placeRemainingStudents } from "./phase2";
 
-function makeAttendee(overrides: Partial<Attendee> = {}): Attendee {
+function makeStudent(overrides: Partial<Student> = {}): Student {
   return {
-    id: "attendee-1",
+    id: "student-1",
     userId: "user-1",
     name: "Maya Chen",
     prosocialTraits: [],
@@ -19,15 +19,15 @@ function makeAttendee(overrides: Partial<Attendee> = {}): Attendee {
   };
 }
 
-describe("placeRemainingAttendees", () => {
-  it("fills available seats with unplaced attendees", () => {
-    const result = placeRemainingAttendees({
-      attendees: [
-        makeAttendee({ id: "maya", name: "Maya" }),
-        makeAttendee({ id: "sam", name: "Sam" }),
+describe("placeRemainingStudents", () => {
+  it("fills available seats with unplaced students", () => {
+    const result = placeRemainingStudents({
+      students: [
+        makeStudent({ id: "maya", name: "Maya" }),
+        makeStudent({ id: "sam", name: "Sam" }),
       ],
       assignments: {},
-      placedAttendeeIds: new Set(),
+      placedStudentIds: new Set(),
       availableSeatKeys: ["1,1", "1,2"],
       explanations: {},
     });
@@ -40,13 +40,13 @@ describe("placeRemainingAttendees", () => {
   });
 
   it("keeps existing phase 1 assignments intact", () => {
-    const result = placeRemainingAttendees({
-      attendees: [
-        makeAttendee({ id: "maya", name: "Maya", constraints: ["near_door"] }),
-        makeAttendee({ id: "sam", name: "Sam" }),
+    const result = placeRemainingStudents({
+      students: [
+        makeStudent({ id: "maya", name: "Maya", constraints: ["near_door"] }),
+        makeStudent({ id: "sam", name: "Sam" }),
       ],
       assignments: { "1,1": "maya" },
-      placedAttendeeIds: new Set(["maya"]),
+      placedStudentIds: new Set(["maya"]),
       availableSeatKeys: ["1,2"],
       explanations: { "1,1": [] },
     });
@@ -58,29 +58,29 @@ describe("placeRemainingAttendees", () => {
   });
 
   it("places peer tutors adjacent when possible", () => {
-    const result = placeRemainingAttendees({
-      attendees: [
-        makeAttendee({ id: "maya", name: "Maya", togetherIds: ["sam"] }),
-        makeAttendee({ id: "sam", name: "Sam" }),
+    const result = placeRemainingStudents({
+      students: [
+        makeStudent({ id: "maya", name: "Maya", togetherIds: ["sam"] }),
+        makeStudent({ id: "sam", name: "Sam" }),
       ],
       assignments: { "1,1": "maya" },
-      placedAttendeeIds: new Set(["maya"]),
+      placedStudentIds: new Set(["maya"]),
       availableSeatKeys: ["1,2", "4,4"],
       explanations: { "1,1": [] },
     });
 
     expect(result.assignments["1,2"]).toBe("sam");
-    expect(result.explanations["1,2"][0].rule).toBe("peer_tutor_adjacency");
+    expect(result.explanations["1,2"][0].rule).toBe("together_list_adjacency");
   });
 
   it("separateIdss separateIds-list adjacency when another seat is available", () => {
-    const result = placeRemainingAttendees({
-      attendees: [
-        makeAttendee({ id: "maya", name: "Maya", separateIds: ["sam"] }),
-        makeAttendee({ id: "sam", name: "Sam" }),
+    const result = placeRemainingStudents({
+      students: [
+        makeStudent({ id: "maya", name: "Maya", separateIds: ["sam"] }),
+        makeStudent({ id: "sam", name: "Sam" }),
       ],
       assignments: { "1,1": "maya" },
-      placedAttendeeIds: new Set(["maya"]),
+      placedStudentIds: new Set(["maya"]),
       availableSeatKeys: ["1,2", "4,4"],
       explanations: { "1,1": [] },
     });
@@ -88,14 +88,14 @@ describe("placeRemainingAttendees", () => {
     expect(result.assignments["4,4"]).toBe("sam");
   });
 
-  it("warns when there are more remaining attendees than seats", () => {
-    const result = placeRemainingAttendees({
-      attendees: [
-        makeAttendee({ id: "maya", name: "Maya" }),
-        makeAttendee({ id: "sam", name: "Sam" }),
+  it("warns when there are more remaining students than seats", () => {
+    const result = placeRemainingStudents({
+      students: [
+        makeStudent({ id: "maya", name: "Maya" }),
+        makeStudent({ id: "sam", name: "Sam" }),
       ],
       assignments: {},
-      placedAttendeeIds: new Set(),
+      placedStudentIds: new Set(),
       availableSeatKeys: ["1,1"],
       explanations: {},
     });
@@ -111,13 +111,13 @@ describe("placeRemainingAttendees", () => {
   });
 
   it("uses deterministic tie-breakers when scores are equal", () => {
-    const result = placeRemainingAttendees({
-      attendees: [
-        makeAttendee({ id: "zoe", name: "Zoe" }),
-        makeAttendee({ id: "amy", name: "Amy" }),
+    const result = placeRemainingStudents({
+      students: [
+        makeStudent({ id: "zoe", name: "Zoe" }),
+        makeStudent({ id: "amy", name: "Amy" }),
       ],
       assignments: {},
-      placedAttendeeIds: new Set(),
+      placedStudentIds: new Set(),
       availableSeatKeys: ["2,2", "1,1"],
       explanations: {},
     });

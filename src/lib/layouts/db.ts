@@ -13,9 +13,8 @@ export type LayoutRow = {
   rows: number | null;
   columns: number | null;
   num_groups: number | null;
-  attendees_per_group: number | null;
+  students_per_group: number | null;
   grid: CellType[][];
-  venue_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -31,9 +30,8 @@ export function rowToLayout(row: LayoutRow): ClassroomLayout {
     rows: row.rows,
     columns: row.columns,
     numGroups: row.num_groups,
-    attendeesPerGroup: row.attendees_per_group,
+    studentsPerGroup: row.students_per_group,
     grid: row.grid,
-    venueId: row.venue_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -50,8 +48,7 @@ export function layoutToInsert(
     rows: layout.rows,
     columns: layout.columns,
     num_groups: layout.numGroups,
-    attendees_per_group: layout.attendeesPerGroup,
+    students_per_group: layout.studentsPerGroup,
     grid: layout.grid,
-    venue_id: layout.venueId ?? null,
   };
 }

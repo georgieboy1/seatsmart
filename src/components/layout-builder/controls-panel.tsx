@@ -8,11 +8,11 @@ type Props = {
   rows: number;
   columns: number;
   numGroups: number;
-  attendeesPerGroup: number;
+  studentsPerGroup: number;
   onRowsChange: (n: number) => void;
   onColumnsChange: (n: number) => void;
   onNumGroupsChange: (n: number) => void;
-  onAttendeesPerGroupChange: (n: number) => void;
+  onStudentsPerGroupChange: (n: number) => void;
   onApply: () => void;
 };
 
@@ -60,15 +60,15 @@ export function ControlsPanel(props: Props) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="attendeesPerGroup">Attendees per group (1–8)</Label>
+            <Label htmlFor="studentsPerGroup">Students per group (1–8)</Label>
             <Input
-              id="attendeesPerGroup"
+              id="studentsPerGroup"
               type="number"
               min={1}
               max={8}
-              value={props.attendeesPerGroup}
+              value={props.studentsPerGroup}
               onChange={(e) =>
-                props.onAttendeesPerGroupChange(Number(e.target.value))
+                props.onStudentsPerGroupChange(Number(e.target.value))
               }
             />
           </div>

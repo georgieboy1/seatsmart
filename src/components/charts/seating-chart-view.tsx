@@ -3,13 +3,13 @@
 import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { ClassroomLayout } from "@/lib/types/layout";
-import type { Attendee } from "@/lib/types/attendee";
+import type { Student } from "@/lib/types/student";
 import type { SeatingChart } from "@/lib/types/chart";
 import { generateSeating } from "@/lib/seating/generate";
 import type { GenerationOptions, SeatingIssue, SeatExplanation } from "@/lib/seating/types";
-import type { Cohort } from "@/lib/types/cohort";
+import type { Class } from "@/lib/types/class";
 import { createChart, updateChart } from "@/lib/charts/actions";
-import { listAttendees } from "@/lib/attendees/actions";
+import { listStudents } from "@/lib/students/actions";
 import { exportToCsv, exportToJson, exportToPng } from "@/lib/charts/export";
 import { SeatingChartGrid } from "./seating-chart-grid";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ import {
   Ban,
   Unlock,
   GripVertical,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTerminology } from "@/components/providers/terminology-provider";
@@ -45,18 +46,20 @@ type BooleanGenerationOption = Exclude<
 
 type Props = {
   layout: ClassroomLayout;
-  attendees: Attendee[];
-  cohorts: Cohort[];
+  students: Student[];
+  classes: Class[];
   initialChart?: SeatingChart | null;
-  cohortId?: string;
+  classId?: string;
 };
+
+type SidebarClassFilter = string | "all" | "unassigned";
 
 export function SeatingChartView({ 
   layout, 
-  attendees: initialAttendees, 
-  cohorts,
+  students: initialStudents, 
+  classes,
   initialChart, 
-  cohortId 
+  classId 
 }: Props) {
   const t = useTerminology();
   const router = useRouter();
@@ -73,11 +76,11 @@ export function SeatingChartView({
 
   const [isSaving, setIsSaving] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [attendees, setAttendees] = useState<Attendee[]>(initialAttendees);
+  const [students, setStudents] = useState<Student[]>(initialStudents);
   const [name, setName] = useState(initialChart?.name ?? "New Seating Chart");
   const [isStale, setIsStale] = useState(initialChart?.stale ?? false);
-  const [sidebarCohortId, setSidebarCohortId] = useState<string | "all" | "unassigned">(
-    cohortId || initialChart?.cohortId || "all"
+  const [sidebarClassId, setSidebarClassId] = useState<SidebarClassFilter>(
+    classId || initialChart?.classId || "all"
   );
   
   const [options, setOptions] = useState<GenerationOptions>({
@@ -98,21 +101,21 @@ export function SeatingChartView({
   const [issues, setIssues] = useState<SeatingIssue[]>([]);
   const [explanations, setExplanations] = useState<Record<string, SeatExplanation[]>>({});
 
-  const unassignedAttendees = useMemo(() => {
+  const unassignedStudents = useMemo(() => {
     // Ensure we have a set of all currently assigned IDs
     const assignedIds = new Set(
       Object.values(assignments).filter((id): id is string => typeof id === "string" && id !== "")
     );
-    // Filter the full roster to find attendees not in the chart
-    const unplaced = attendees.filter((g) => !assignedIds.has(g.id));
+    // Filter the full roster to find students not in the chart
+    const unplaced = students.filter((g) => !assignedIds.has(g.id));
 
-    if (sidebarCohortId === "all") return unplaced;
-    if (sidebarCohortId === "unassigned") return unplaced.filter(g => !g.cohortId);
-    return unplaced.filter(g => g.cohortId === sidebarCohortId);
-  }, [attendees, assignments, sidebarCohortId]);
+    if (sidebarClassId === "all") return unplaced;
+    if (sidebarClassId === "unassigned") return unplaced.filter(g => !g.classId);
+    return unplaced.filter(g => g.classId === sidebarClassId);
+  }, [students, assignments, sidebarClassId]);
 
   const handleGenerate = useCallback(() => {
-    const result = generateSeating(attendees, layout, {
+    const result = generateSeating(students, layout, {
       ...options,
       lockedSeats,
     });
@@ -121,18 +124,18 @@ export function SeatingChartView({
     setIssues(result.issues);
     setExplanations(result.explanationsBySeat);
     setIsStale(false);
-  }, [attendees, layout, options, lockedSeats]);
+  }, [students, layout, options, lockedSeats]);
 
   const handleSwap = useCallback((fromKey: string, toKey: string) => {
     setAssignments((prev) => {
       const next = { ...prev };
-      const fromAttendeeId = next[fromKey];
-      const toAttendeeId = next[toKey];
+      const fromStudentId = next[fromKey];
+      const toStudentId = next[toKey];
       
-      if (fromAttendeeId) next[toKey] = fromAttendeeId;
+      if (fromStudentId) next[toKey] = fromStudentId;
       else delete next[toKey];
       
-      if (toAttendeeId) next[fromKey] = toAttendeeId;
+      if (toStudentId) next[fromKey] = toStudentId;
       else delete next[fromKey];
       
       return next;
@@ -170,7 +173,7 @@ export function SeatingChartView({
   const handleAssign = useCallback((seatKey: string, externalId: string) => {
     setAssignments((prev) => {
       const next = { ...prev };
-      // If attendee was already assigned elsewhere, clear that seat
+      // If student was already assigned elsewhere, clear that seat
       for (const [key, val] of Object.entries(next)) {
         if (val === externalId) delete next[key];
       }
@@ -184,7 +187,7 @@ export function SeatingChartView({
     try {
       const chartData = {
         layoutId: layout.id,
-        cohortId: cohortId || initialChart?.cohortId || null,
+        classId: classId || initialChart?.classId || null,
         name,
         assignments,
         lockedSeats,
@@ -218,18 +221,18 @@ export function SeatingChartView({
   const handleRefreshRoster = async () => {
     setIsRefreshing(true);
     try {
-      const freshAttendees = await listAttendees(cohortId);
-      setAttendees(freshAttendees);
+      const freshStudents = await listStudents(classId);
+      setStudents(freshStudents);
     } catch (error) {
-      console.error("Failed to refresh attendees:", error);
+      console.error("Failed to refresh students:", error);
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  const attendeesById = useMemo(() => 
-    new Map(attendees.map(g => [g.id, g])),
-    [attendees]
+  const studentsById = useMemo(() => 
+    new Map(students.map(g => [g.id, g])),
+    [students]
   );
 
   return (
@@ -303,7 +306,7 @@ export function SeatingChartView({
               <DropdownMenuItem onClick={() => exportToPng(name, "seating-chart-grid")}>
                 Export as PNG
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportToCsv(name, assignments, attendeesById)}>
+              <DropdownMenuItem onClick={() => exportToCsv(name, assignments, studentsById)}>
                 Export as CSV
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => exportToJson(name, { name, layoutId: layout.id, assignments, score })}>
@@ -330,28 +333,28 @@ export function SeatingChartView({
             <div className="flex items-center justify-between">
               <h3 className="font-medium text-sm">Unplaced {t.people}</h3>
               <span className="text-xs bg-muted px-2 py-0.5 rounded-full font-medium">
-                {unassignedAttendees.length}
+                {unassignedStudents.length}
               </span>
             </div>
             <select
-              value={sidebarCohortId}
-              onChange={(e) => setSidebarCohortId(e.target.value as any)}
+              value={sidebarClassId}
+              onChange={(e) => setSidebarClassId(e.target.value as SidebarClassFilter)}
               className="w-full rounded-md border bg-transparent px-3 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <option value="all">All {t.people}</option>
               <option value="unassigned">No {t.group}</option>
-              {cohorts.map((c) => (
+              {classes.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
             <ScrollArea className="h-48 rounded-md border bg-muted/20">
               <div className="p-2 space-y-1">
-                {unassignedAttendees.length === 0 ? (
+                {unassignedStudents.length === 0 ? (
                   <p className="text-[10px] text-center text-muted-foreground py-4 italic">
                     No unplaced {t.people.toLowerCase()} found.
                   </p>
                 ) : (
-                  unassignedAttendees.map((g) => (
+                  unassignedStudents.map((g) => (
                     <div
                       key={g.id}
                       className="flex items-center gap-1.5 px-2 py-1.5 text-xs border border-foreground/40 bg-card hover:border-foreground transition-colors"
@@ -416,18 +419,23 @@ export function SeatingChartView({
 
           <div className="flex-1 flex flex-col rounded-lg border overflow-hidden bg-card">
             <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
-              <h3 className="font-medium text-sm">Issues & Score</h3>
-              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 text-primary rounded-full">
+              <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Placement Report</h3>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 text-primary border border-primary/20">
                 <Trophy className="h-3 w-3" />
-                <span className="text-xs font-bold">{score}</span>
+                <span className="text-xs font-bold font-mono">{score}</span>
               </div>
             </div>
             <ScrollArea className="flex-1">
               <div className="p-4 space-y-4">
-                {issues.length === 0 ? (
+                {issues.length === 0 && Object.keys(assignments).length > 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                    <CheckCircle2 className="h-8 w-8 mb-2 text-emerald-500/50" />
+                    <p className="text-xs font-medium">All constraints satisfied.</p>
+                  </div>
+                ) : issues.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
                     <Info className="h-8 w-8 mb-2 opacity-20" />
-                    <p className="text-xs italic">No issues detected.</p>
+                    <p className="text-xs italic">Generate a chart to view analysis.</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -464,8 +472,8 @@ export function SeatingChartView({
         </div>
 
         {/* Center: Grid */}
-        <div className="flex-1 flex flex-col items-center justify-center overflow-auto rounded-xl border bg-muted/5 p-8 relative">
-          <div className="absolute top-4 right-4 flex gap-4 text-xs text-muted-foreground">
+        <div className="flex-1 flex flex-col items-center justify-center overflow-auto rounded-xl border bg-muted/5 p-8 relative blueprint-grid">
+          <div className="absolute top-4 right-4 flex gap-4 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-1 border rounded-md">
             <div>Seats: <span className="font-medium text-foreground">{stats.totalSeats}</span></div>
             <div>Placed: <span className="font-medium text-foreground">{stats.assignedCount}</span></div>
             <div>Locked: <span className="font-medium text-foreground">{Object.keys(lockedSeats).length}</span></div>
@@ -473,8 +481,8 @@ export function SeatingChartView({
           
           <SeatingChartGrid
             layout={layout}
-            attendees={attendees}
-            unassignedAttendees={unassignedAttendees}
+            students={students}
+            unassignedStudents={unassignedStudents}
             assignments={assignments}
             lockedSeats={lockedSeats}
             explanations={explanations}

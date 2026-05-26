@@ -12,7 +12,7 @@ export default function TermsPage() {
         </p>
         <h2 className="text-xl font-semibold mt-6 mb-2">2. User Responsibility</h2>
         <p>
-          Teachers are responsible for the accuracy of attendee data and for
+          Teachers are responsible for the accuracy of student data and for
           ensuring they have the necessary permissions within their school
           district to use this tool.
         </p>

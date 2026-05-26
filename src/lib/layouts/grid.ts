@@ -34,21 +34,21 @@ export function createTraditionalGrid(
 }
 
 /**
- * Build a Groups layout grid: `numGroups` clusters (pods) of attendees,
+ * Build a Groups layout grid: `numGroups` clusters (pods) of students,
  * each cluster arranged in a small block (e.g. 2x2 or 3x2).
  * Clusters are separated by walking-space (perimeter cells).
  * Teacher desk centered on the top perimeter.
  */
 export function createGroupsGrid(
   numGroups: number,
-  attendeesPerGroup: number,
+  studentsPerGroup: number,
 ): CellType[][] {
   if (numGroups <= 0) return createTraditionalGrid(1, 1);
 
   // 1. Determine pod dimensions (the block size for one group)
   // Small groups (<=4) use 2-wide pods. Larger groups use 3-wide.
-  const podWidth = attendeesPerGroup <= 1 ? 1 : attendeesPerGroup <= 4 ? 2 : 3;
-  const podHeight = Math.ceil(attendeesPerGroup / podWidth);
+  const podWidth = studentsPerGroup <= 1 ? 1 : studentsPerGroup <= 4 ? 2 : 3;
+  const podHeight = Math.ceil(studentsPerGroup / podWidth);
 
   // 2. Determine how to arrange the pods in a grid
   // We want a balanced layout, so we target a square-ish grid of pods.
@@ -75,8 +75,8 @@ export function createGroupsGrid(
     const startC = groupCol * (podWidth + 1) + 1;
 
     let seatsPlaced = 0;
-    for (let pr = 0; pr < podHeight && seatsPlaced < attendeesPerGroup; pr++) {
-      for (let pc = 0; pc < podWidth && seatsPlaced < attendeesPerGroup; pc++) {
+    for (let pr = 0; pr < podHeight && seatsPlaced < studentsPerGroup; pr++) {
+      for (let pc = 0; pc < podWidth && seatsPlaced < studentsPerGroup; pc++) {
         grid[startR + pr][startC + pc] = "seat";
         seatsPlaced++;
       }

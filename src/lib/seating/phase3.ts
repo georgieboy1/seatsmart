@@ -1,5 +1,5 @@
 import type { ClassroomLayout } from "@/lib/types/layout";
-import type { Attendee } from "@/lib/types/attendee";
+import type { Student } from "@/lib/types/student";
 import { explainAssignments, scoreSeatingRelationships } from "./scoring";
 import {
   checkSeparation,
@@ -8,7 +8,7 @@ import {
 import type { SeatExplanation } from "./types";
 
 export type Phase3Input = {
-  attendees: Attendee[];
+  students: Student[];
   assignments: Record<string, string>;
   explanations: Record<string, SeatExplanation[]>;
   lockedSeatKeys?: Set<string>;
@@ -42,7 +42,7 @@ function swapAssignments(
 
 export function optimizeSeatSwaps(input: Phase3Input): Phase3Result {
   let assignments = { ...input.assignments };
-  let score = scoreSeatingRelationships(input.attendees, assignments).score;
+  let score = scoreSeatingRelationships(input.students, assignments).score;
   let swapsAttempted = 0;
   let swapsAccepted = 0;
   let swapsRejectedForSeparation = 0;
@@ -93,7 +93,7 @@ export function optimizeSeatSwaps(input: Phase3Input): Phase3Result {
           // Prefer swaps that strictly reduce violations even at lower score.
           if (candidateViolations < bestViolations) {
             bestAssignments = candidate;
-            bestScore = scoreSeatingRelationships(input.attendees, candidate).score;
+            bestScore = scoreSeatingRelationships(input.students, candidate).score;
             bestViolations = candidateViolations;
             improved = true;
             continue;
@@ -101,7 +101,7 @@ export function optimizeSeatSwaps(input: Phase3Input): Phase3Result {
         }
 
         const candidateScore = scoreSeatingRelationships(
-          input.attendees,
+          input.students,
           candidate,
         ).score;
 
@@ -123,7 +123,7 @@ export function optimizeSeatSwaps(input: Phase3Input): Phase3Result {
     swapsAccepted += 1;
   }
 
-  const relationshipExplanations = explainAssignments(input.attendees, assignments);
+  const relationshipExplanations = explainAssignments(input.students, assignments);
   const explanations: Record<string, SeatExplanation[]> = { ...input.explanations };
 
   for (const [seatKey, items] of Object.entries(relationshipExplanations)) {

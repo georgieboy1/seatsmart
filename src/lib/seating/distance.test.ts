@@ -19,9 +19,8 @@ function makeLayout(
     rows: null,
     columns: null,
     numGroups: null,
-    attendeesPerGroup: null,
+    studentsPerGroup: null,
     grid,
-    venueId: null,
     createdAt: "2026-01-01",
     updatedAt: "2026-01-02",
   };

@@ -27,7 +27,7 @@ const traditionalSchema = z.object({
   rows: z.number().int().min(1).max(10),
   columns: z.number().int().min(1).max(10),
   numGroups: z.null(),
-  attendeesPerGroup: z.null(),
+  studentsPerGroup: z.null(),
   grid: gridSchema,
 });
 
@@ -37,7 +37,7 @@ const groupsSchema = z.object({
   rows: z.null(),
   columns: z.null(),
   numGroups: z.number().int().min(1).max(12),
-  attendeesPerGroup: z.number().int().min(1).max(8),
+  studentsPerGroup: z.number().int().min(1).max(8),
   grid: gridSchema,
 });
 

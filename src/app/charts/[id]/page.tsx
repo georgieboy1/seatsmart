@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { getChart } from "@/lib/charts/actions";
 import { getLayout } from "@/lib/layouts/actions";
-import { listAttendees } from "@/lib/attendees/actions";
-import { listCohorts } from "@/lib/cohorts/actions";
+import { listStudents } from "@/lib/students/actions";
+import { listClasses } from "@/lib/classes/actions";
 import { SeatingChartView } from "@/components/charts/seating-chart-view";
 
 export const dynamic = "force-dynamic";
@@ -19,10 +19,10 @@ export default async function ChartDetailPage({
     redirect("/charts?error=Chart+not+found");
   }
 
-  const [layout, attendees, cohorts] = await Promise.all([
+  const [layout, students, classes] = await Promise.all([
     getLayout(chart.layoutId),
-    listAttendees(),
-    listCohorts(),
+    listStudents(),
+    listClasses(),
   ]);
 
   if (!layout) {
@@ -33,8 +33,8 @@ export default async function ChartDetailPage({
     <main className="mx-auto max-w-7xl px-4 py-8">
       <SeatingChartView 
         layout={layout} 
-        attendees={attendees} 
-        cohorts={cohorts}
+        students={students} 
+        classes={classes}
         initialChart={chart} 
       />
     </main>

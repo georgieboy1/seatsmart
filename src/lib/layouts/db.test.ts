@@ -11,7 +11,7 @@ describe("rowToLayout", () => {
       rows: 5,
       columns: 6,
       num_groups: null,
-      attendees_per_group: null,
+      students_per_group: null,
       grid: [["seat"]],
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-02T00:00:00Z",
@@ -24,7 +24,7 @@ describe("rowToLayout", () => {
       rows: 5,
       columns: 6,
       numGroups: null,
-      attendeesPerGroup: null,
+      studentsPerGroup: null,
       grid: [["seat"]],
       createdAt: "2026-01-01T00:00:00Z",
       updatedAt: "2026-01-02T00:00:00Z",
@@ -40,7 +40,7 @@ describe("rowToLayout", () => {
       rows: null,
       columns: null,
       num_groups: 4,
-      attendees_per_group: 4,
+      students_per_group: 4,
       grid: [["seat"]],
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-02T00:00:00Z",
@@ -49,7 +49,7 @@ describe("rowToLayout", () => {
     expect(layout.rows).toBeNull();
     expect(layout.columns).toBeNull();
     expect(layout.numGroups).toBe(4);
-    expect(layout.attendeesPerGroup).toBe(4);
+    expect(layout.studentsPerGroup).toBe(4);
   });
 });
 
@@ -63,7 +63,7 @@ describe("layoutToInsert", () => {
           rows: null,
           columns: null,
           numGroups: 4,
-          attendeesPerGroup: 4,
+          studentsPerGroup: 4,
           grid: [["seat"]],
         },
         "user-1",
@@ -75,11 +75,8 @@ describe("layoutToInsert", () => {
       rows: null,
       columns: null,
       num_groups: 4,
-      attendees_per_group: 4,
+      students_per_group: 4,
       grid: [["seat"]],
-      // venue_id defaults to null when the NewLayout doesn't provide one.
-      // See 0009_marketplace.sql + layoutToInsert in db.ts.
-      venue_id: null,
     });
   });
 });

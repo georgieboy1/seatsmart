@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ClassroomLayout } from "@/lib/types/layout";
-import type { Attendee } from "@/lib/types/attendee";
+import type { Student } from "@/lib/types/student";
 import { generateSeating } from "./generate";
 import type { GenerationOptions } from "./types";
 
@@ -26,18 +26,17 @@ function makeLayout(
     rows: null,
     columns: null,
     numGroups: null,
-    attendeesPerGroup: null,
+    studentsPerGroup: null,
     grid,
-    venueId: null,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-02T00:00:00.000Z",
     ...overrides,
   };
 }
 
-function makeAttendee(overrides: Partial<Attendee> = {}): Attendee {
+function makeStudent(overrides: Partial<Student> = {}): Student {
   return {
-    id: "attendee-1",
+    id: "student-1",
     userId: "user-1",
     name: "Maya Chen",
     prosocialTraits: [],
@@ -55,7 +54,7 @@ function makeAttendee(overrides: Partial<Attendee> = {}): Attendee {
 describe("generateSeating", () => {
   it("returns an empty result for an empty classroom", () => {
     const result = generateSeating(
-      [makeAttendee({ id: "maya", name: "Maya" })],
+      [makeStudent({ id: "maya", name: "Maya" })],
       makeLayout([["perimeter", "door"]]),
       defaultOptions,
     );
@@ -70,12 +69,12 @@ describe("generateSeating", () => {
     ]);
   });
 
-  it("places the maximum possible attendees and reports overflow", () => {
+  it("places the maximum possible students and reports overflow", () => {
     const result = generateSeating(
       [
-        makeAttendee({ id: "amy", name: "Amy" }),
-        makeAttendee({ id: "maya", name: "Maya" }),
-        makeAttendee({ id: "sam", name: "Sam" }),
+        makeStudent({ id: "amy", name: "Amy" }),
+        makeStudent({ id: "maya", name: "Maya" }),
+        makeStudent({ id: "sam", name: "Sam" }),
       ],
       makeLayout([["seat", "seat"]]),
       defaultOptions,
@@ -91,15 +90,15 @@ describe("generateSeating", () => {
     ]);
   });
 
-  it("handles all attendees needing the same accommodation", () => {
+  it("handles all students needing the same accommodation", () => {
     const result = generateSeating(
       [
-        makeAttendee({
+        makeStudent({
           id: "amy",
           name: "Amy",
           constraints: ["near_door"],
         }),
-        makeAttendee({
+        makeStudent({
           id: "maya",
           name: "Maya",
           constraints: ["near_door"],
@@ -119,8 +118,8 @@ describe("generateSeating", () => {
   it("respects separateIds lists when possible", () => {
     const result = generateSeating(
       [
-        makeAttendee({ id: "amy", name: "Amy", separateIds: ["bob"] }),
-        makeAttendee({ id: "bob", name: "Bob" }),
+        makeStudent({ id: "amy", name: "Amy", separateIds: ["bob"] }),
+        makeStudent({ id: "bob", name: "Bob" }),
       ],
       makeLayout([["seat", "seat", "empty", "seat"]]),
       defaultOptions,
@@ -136,12 +135,12 @@ describe("generateSeating", () => {
   it("never reassigns locked seats", () => {
     const result = generateSeating(
       [
-        makeAttendee({
+        makeStudent({
           id: "amy",
           name: "Amy",
           constraints: ["near_door"],
         }),
-        makeAttendee({ id: "bob", name: "Bob" }),
+        makeStudent({ id: "bob", name: "Bob" }),
       ],
       makeLayout([
         ["perimeter", "door"],
@@ -158,19 +157,19 @@ describe("generateSeating", () => {
   });
 
   it("is deterministic for the same inputs and seed", () => {
-    const attendees = [
-      makeAttendee({ id: "amy", name: "Amy", togetherIds: ["bob"] }),
-      makeAttendee({ id: "bob", name: "Bob" }),
-      makeAttendee({ id: "maya", name: "Maya", separateIds: ["sam"] }),
-      makeAttendee({ id: "sam", name: "Sam" }),
+    const students = [
+      makeStudent({ id: "amy", name: "Amy", togetherIds: ["bob"] }),
+      makeStudent({ id: "bob", name: "Bob" }),
+      makeStudent({ id: "maya", name: "Maya", separateIds: ["sam"] }),
+      makeStudent({ id: "sam", name: "Sam" }),
     ];
     const layout = makeLayout([
       ["seat", "seat", "seat"],
       ["seat", "seat", "seat"],
     ]);
 
-    const first = generateSeating(attendees, layout, defaultOptions);
-    const second = generateSeating(attendees, layout, defaultOptions);
+    const first = generateSeating(students, layout, defaultOptions);
+    const second = generateSeating(students, layout, defaultOptions);
 
     expect(second.assignments).toEqual(first.assignments);
     expect(second.score).toBe(first.score);
@@ -179,7 +178,7 @@ describe("generateSeating", () => {
 
   // ===== Phase 0 / Marketplace upgrade tests =====
 
-  it("binds the highest-centrality attendee to an anchor seat", () => {
+  it("binds the highest-centrality student to an anchor seat", () => {
     // Layout with a teacher_desk in row 0; seats below.
     // Seats (1,0), (1,1), (1,2) are anchors (Chebyshev=1 to teacher_desk).
     const layout = makeLayout([
@@ -191,9 +190,9 @@ describe("generateSeating", () => {
     // Hub has 2 outbound + 0 inbound = centrality 2. Others: 1 inbound, 0 outbound.
     const result = generateSeating(
       [
-        makeAttendee({ id: "hub", name: "Hub", togetherIds: ["a", "b"] }),
-        makeAttendee({ id: "a", name: "Alice" }),
-        makeAttendee({ id: "b", name: "Bob" }),
+        makeStudent({ id: "hub", name: "Hub", togetherIds: ["a", "b"] }),
+        makeStudent({ id: "a", name: "Alice" }),
+        makeStudent({ id: "b", name: "Bob" }),
       ],
       layout,
       defaultOptions,
@@ -217,12 +216,12 @@ describe("generateSeating", () => {
     ).toBe(true);
   });
 
-  it("keeps strictly-separate attendees at minimum distance when the room is large enough", () => {
+  it("keeps strictly-separate students at minimum distance when the room is large enough", () => {
     // 1x7 row of seats. With D=2 (default), Amy and Bob must be at least 2 apart.
     const result = generateSeating(
       [
-        makeAttendee({ id: "amy", name: "Amy", separateIds: ["bob"] }),
-        makeAttendee({ id: "bob", name: "Bob" }),
+        makeStudent({ id: "amy", name: "Amy", separateIds: ["bob"] }),
+        makeStudent({ id: "bob", name: "Bob" }),
       ],
       makeLayout([["seat", "seat", "seat", "seat", "seat", "seat", "seat"]]),
       defaultOptions,
@@ -253,8 +252,8 @@ describe("generateSeating", () => {
     // 1x2 — only seats (0,0) and (0,1). Chebyshev distance is 1, D=2 is infeasible.
     const result = generateSeating(
       [
-        makeAttendee({ id: "amy", name: "Amy", separateIds: ["bob"] }),
-        makeAttendee({ id: "bob", name: "Bob" }),
+        makeStudent({ id: "amy", name: "Amy", separateIds: ["bob"] }),
+        makeStudent({ id: "bob", name: "Bob" }),
       ],
       makeLayout([["seat", "seat"]]),
       defaultOptions,
@@ -284,10 +283,10 @@ describe("generateSeating", () => {
     ]);
     const result = generateSeating(
       [
-        makeAttendee({ id: "hub", name: "Hub", togetherIds: ["a"] }),
-        makeAttendee({ id: "a", name: "Alice" }),
-        makeAttendee({ id: "amy", name: "Amy", separateIds: ["bob"] }),
-        makeAttendee({ id: "bob", name: "Bob" }),
+        makeStudent({ id: "hub", name: "Hub", togetherIds: ["a"] }),
+        makeStudent({ id: "a", name: "Alice" }),
+        makeStudent({ id: "amy", name: "Amy", separateIds: ["bob"] }),
+        makeStudent({ id: "bob", name: "Bob" }),
       ],
       layout,
       defaultOptions,
@@ -319,8 +318,8 @@ describe("generateSeating", () => {
 
     const result = generateSeating(
       [
-        makeAttendee({ id: "amy", name: "Amy", separateIds: ["bob"] }),
-        makeAttendee({ id: "bob", name: "Bob" }),
+        makeStudent({ id: "amy", name: "Amy", separateIds: ["bob"] }),
+        makeStudent({ id: "bob", name: "Bob" }),
       ],
       layout,
       defaultOptions,

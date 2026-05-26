@@ -12,7 +12,7 @@ function makeTraditional(): ClassroomLayout {
     rows: 5,
     columns: 6,
     numGroups: null,
-    attendeesPerGroup: null,
+    studentsPerGroup: null,
     grid: [
       ["perimeter", "perimeter", "perimeter"],
       ["perimeter", "seat", "perimeter"],
@@ -30,7 +30,7 @@ function makeGroups(): ClassroomLayout {
     rows: null,
     columns: null,
     numGroups: 4,
-    attendeesPerGroup: 4,
+    studentsPerGroup: 4,
   };
 }
 
@@ -49,7 +49,7 @@ describe("LayoutBuilder", () => {
   it("shows groups inputs for Groups layouts", () => {
     render(<LayoutBuilder layout={makeGroups()} />);
     expect(screen.getByLabelText(/groups \(1/i)).toHaveValue(4);
-    expect(screen.getByLabelText(/attendees per group/i)).toHaveValue(4);
+    expect(screen.getByLabelText(/students per group/i)).toHaveValue(4);
   });
 
   it("renders one gridcell per cell in the grid", () => {

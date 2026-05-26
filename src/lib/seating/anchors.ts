@@ -1,5 +1,5 @@
 import type { ClassroomLayout } from "@/lib/types/layout";
-import type { Attendee } from "@/lib/types/attendee";
+import type { Student } from "@/lib/types/student";
 import { positionKey } from "./geometry";
 import { chebyshevDistance, computePodMap } from "./distance";
 import type { SeatPosition } from "./types";
@@ -126,30 +126,30 @@ function positionSort(a: SeatPosition, b: SeatPosition): number {
  * Compute network centrality on the togetherIds graph.
  * centrality(A) = |A.togetherIds| (outbound) + |{B : A.id ∈ B.togetherIds}| (inbound).
  *
- * Returns attendees sorted by centrality descending, with name as the
- * tie-breaker for determinism. Attendees with centrality 0 are
+ * Returns students sorted by centrality descending, with name as the
+ * tie-breaker for determinism. Students with centrality 0 are
  * excluded — anchoring nobody-knows-anybody is meaningless social
  * signal.
  */
 export function rankByTogetherCentrality(
-  attendees: Attendee[],
-): Array<{ attendee: Attendee; centrality: number }> {
+  students: Student[],
+): Array<{ student: Student; centrality: number }> {
   const inbound = new Map<string, number>();
-  for (const att of attendees) {
+  for (const att of students) {
     for (const id of att.togetherIds ?? []) {
       inbound.set(id, (inbound.get(id) ?? 0) + 1);
     }
   }
 
-  return attendees
-    .map((attendee) => ({
-      attendee,
+  return students
+    .map((student) => ({
+      student,
       centrality:
-        (attendee.togetherIds?.length ?? 0) + (inbound.get(attendee.id) ?? 0),
+        (student.togetherIds?.length ?? 0) + (inbound.get(student.id) ?? 0),
     }))
     .filter((entry) => entry.centrality > 0)
     .sort((a, b) => {
       if (a.centrality !== b.centrality) return b.centrality - a.centrality;
-      return a.attendee.name.localeCompare(b.attendee.name);
+      return a.student.name.localeCompare(b.student.name);
     });
 }

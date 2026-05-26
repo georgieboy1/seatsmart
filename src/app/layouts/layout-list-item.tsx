@@ -42,7 +42,7 @@ export function LayoutListItem({ layout }: { layout: ClassroomLayout }) {
         <p className="text-sm text-muted-foreground tabular-nums">
           {layout.type === "traditional"
             ? `${layout.rows ?? 0} × ${layout.columns ?? 0} traditional`
-            : `${layout.numGroups ?? 0} groups of ${layout.attendeesPerGroup ?? 0}`}
+            : `${layout.numGroups ?? 0} groups of ${layout.studentsPerGroup ?? 0} students`}
         </p>
       </Link>
 

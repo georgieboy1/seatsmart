@@ -23,7 +23,7 @@ export function rowToChart(row: ChartRow): SeatingChart {
     id: row.id,
     userId: row.user_id,
     layoutId: row.layout_id,
-    cohortId: row.cohort_id,
+    classId: row.cohort_id,
     name: row.name,
     assignments: row.assignments,
     lockedSeats: row.locked_seats ?? {},
@@ -40,7 +40,7 @@ export function chartToInsert(chart: NewSeatingChart, userId: string): ChartInse
   return {
     user_id: userId,
     layout_id: chart.layoutId,
-    cohort_id: chart.cohortId ?? null,
+    cohort_id: chart.classId ?? null,
     name: chart.name,
     assignments: chart.assignments,
     locked_seats: chart.lockedSeats,

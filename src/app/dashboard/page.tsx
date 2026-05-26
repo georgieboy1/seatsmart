@@ -4,13 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listLayouts } from "@/lib/layouts/actions";
-import { listAttendees } from "@/lib/attendees/actions";
+import { listStudents } from "@/lib/students/actions";
 import { listCharts } from "@/lib/charts/actions";
-import { listCohorts, createCohort, deleteCohort } from "@/lib/cohorts/actions";
-import { logout, toggleWorkspace } from "./actions";
-import { LayoutGrid, Users, ClipboardList, Plus, LogOut, GraduationCap, School, Building2, X } from "lucide-react";
+import { listClasses, createClass, deleteClass } from "@/lib/classes/actions";
+import { logout } from "./actions";
+import { LayoutGrid, Users, ClipboardList, Plus, LogOut, GraduationCap, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { getProfile } from "@/lib/attendees/profile";
 import { getTerminology } from "@/lib/utils/terminology";
 
 export const dynamic = "force-dynamic";
@@ -23,9 +22,7 @@ export default async function DashboardPage({
   searchParams: SearchParams;
 }) {
   const { error: errorMsg, success: successMsg } = await searchParams;
-  const profile = await getProfile();
-  const workspaceType = profile?.workspaceType ?? "education";
-  const t = getTerminology(workspaceType);
+  const t = getTerminology();
 
   const supabase = await createClient();
   const {
@@ -36,14 +33,14 @@ export default async function DashboardPage({
     redirect("/login");
   }
 
-  const [layouts, attendees, charts, cohorts] = await Promise.all([
+  const [layouts, students, charts, classes] = await Promise.all([
     listLayouts(),
-    listAttendees(),
+    listStudents(),
     listCharts(),
-    listCohorts(),
+    listClasses(),
   ]);
 
-  const canGenerate = layouts.length > 0 && attendees.length >= 2;
+  const canGenerate = layouts.length > 0 && students.length >= 2;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-12">
@@ -62,27 +59,9 @@ export default async function DashboardPage({
           <h1 className="text-3xl font-semibold tracking-tight">
             Welcome back
           </h1>
-          <div className="flex items-center gap-4">
-            <p className="text-sm text-muted-foreground">
-              {user.email}
-            </p>
-            <form action={toggleWorkspace}>
-              <Button type="submit" variant="outline" size="sm" className="h-7 text-[10px] px-2 gap-1.5">
-                {workspaceType === "education" ? (
-                  <>
-                    <School className="h-3 w-3" />
-                    Education Mode
-                  </>
-                ) : (
-                  <>
-                    <Building2 className="h-3 w-3" />
-                    Events Mode
-                  </>
-                )}
-                <span className="text-muted-foreground ml-1">(Switch)</span>
-              </Button>
-            </form>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            {user.email}
+          </p>
         </div>
         <form action={logout}>
           <Button type="submit" variant="ghost" size="sm">
@@ -96,26 +75,26 @@ export default async function DashboardPage({
         <Link href="/layouts" className="transition-transform hover:scale-[1.01]">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium">Layouts</CardTitle>
+              <CardTitle className="text-sm font-medium">Classroom Layouts</CardTitle>
               <LayoutGrid className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tabular-nums">{layouts.length}</div>
               <p className="text-xs text-muted-foreground">
-                Model your physical {workspaceType === "education" ? "classrooms" : "venues"}
+                Model your physical classrooms
               </p>
             </CardContent>
           </Card>
         </Link>
 
-        <Link href="/attendees" className="transition-transform hover:scale-[1.01]">
+        <Link href="/students" className="transition-transform hover:scale-[1.01]">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-sm font-medium">{t.people}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold tabular-nums">{attendees.length}</div>
+              <div className="text-2xl font-bold tabular-nums">{students.length}</div>
               <p className="text-xs text-muted-foreground">
                 Manage your {t.person.toLowerCase()} list and relationships
               </p>
@@ -126,7 +105,7 @@ export default async function DashboardPage({
         <Link href="/charts" className="transition-transform hover:scale-[1.01]">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium">Charts</CardTitle>
+              <CardTitle className="text-sm font-medium">Seating Charts</CardTitle>
               <ClipboardList className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -144,26 +123,24 @@ export default async function DashboardPage({
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">{t.groups}</CardTitle>
             <div className="flex gap-2">
-              <Link href="/cohorts" className="text-xs text-primary hover:underline">Manage</Link>
+              <Link href="/classes" className="text-xs text-primary hover:underline">Manage</Link>
               <GraduationCap className="h-4 w-4 text-muted-foreground" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold tabular-nums">{cohorts.length}</div>
+            <div className="text-2xl font-bold tabular-nums">{classes.length}</div>
             <p className="text-xs text-muted-foreground mb-3">
-              {workspaceType === "education"
-                ? "Groups like 'Class 1A' or 'FAMU'"
-                : "Groups like 'Family', 'Friends', or 'Work'"}
+              Groups like &apos;Homeroom&apos; or &apos;AP Chemistry&apos;
             </p>
 
-            {/* Existing cohorts as removable chips so the user sees
+            {/* Existing classes as removable chips so the user sees
                 what's saved before they type a new one. */}
-            {cohorts.length > 0 && (
+            {classes.length > 0 && (
               <ul className="mb-3 flex flex-wrap gap-1.5">
-                {cohorts.map((cohort) => (
+                {classes.map((cohort) => (
                   <li key={cohort.id}>
                     <form
-                      action={deleteCohort.bind(null, cohort.id)}
+                      action={deleteClass.bind(null, cohort.id)}
                       className="inline-flex items-center gap-1 border-[1.5px] border-foreground bg-background px-2 py-0.5 text-xs"
                     >
                       <span>{cohort.name}</span>
@@ -180,7 +157,7 @@ export default async function DashboardPage({
               </ul>
             )}
 
-            <form action={createCohort} className="flex gap-2">
+            <form action={createClass} className="flex gap-2">
               <Input name="name" placeholder={`New ${t.group.toLowerCase()} name...`} required className="h-8 text-xs" />
               <Button type="submit" size="sm" variant="secondary" className="h-8 text-xs">Add</Button>
             </form>

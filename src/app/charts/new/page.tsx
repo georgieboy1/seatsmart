@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { listAttendees } from "@/lib/attendees/actions";
-import { listCohorts } from "@/lib/cohorts/actions";
+import { listStudents } from "@/lib/students/actions";
+import { listClasses } from "@/lib/classes/actions";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, Users } from "lucide-react";
@@ -11,51 +11,51 @@ import { getLayout, listLayouts } from "@/lib/layouts/actions";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ layoutId?: string; cohortId?: string }>;
+type SearchParams = Promise<{ layoutId?: string; classId?: string }>;
 
 export default async function NewChartPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const { layoutId, cohortId } = await searchParams;
-  const [layouts, cohorts] = await Promise.all([
+  const { layoutId, classId } = await searchParams;
+  const [layouts, classes] = await Promise.all([
     listLayouts(),
-    listCohorts(),
+    listClasses(),
   ]);
 
   if (layouts.length === 0) {
     redirect("/dashboard?error=Create+a+layout+first");
   }
 
-  if (cohorts.length === 0) {
-    redirect("/dashboard?error=Create+a+cohort+first");
+  if (classes.length === 0) {
+    redirect("/dashboard?error=Create+a+class+first");
   }
 
-  if (layoutId && cohortId !== undefined) {
-    const [selectedLayout, attendees, allCohorts] = await Promise.all([
+  if (layoutId && classId !== undefined) {
+    const [selectedLayout, students, allClasss] = await Promise.all([
       getLayout(layoutId),
-      listAttendees(), // Get all attendees so we can filter in the view
-      listCohorts(),
+      listStudents(), // Get all students so we can filter in the view
+      listClasses(),
     ]);
 
     if (!selectedLayout) {
       redirect("/charts/new?error=Layout+not+found");
     }
 
-    // Still check if the specific cohort has enough attendees for initial generation
-    const cohortAttendees = attendees.filter(s => s.cohortId === (cohortId || null));
-    if (cohortAttendees.length < 2 && cohortId !== "") {
-      redirect(`/charts/new?layoutId=${layoutId}&error=Need+at+least+2+attendees+in+this+cohort`);
+    // Still check if the specific cohort has enough students for initial generation
+    const cohortStudents = students.filter(s => s.classId === (classId || null));
+    if (cohortStudents.length < 2 && classId !== "") {
+      redirect(`/charts/new?layoutId=${layoutId}&error=Need+at+least+2+students+in+this+class`);
     }
     
     return (
       <main className="mx-auto max-w-7xl px-4 py-8">
         <SeatingChartView 
           layout={selectedLayout} 
-          attendees={attendees} 
-          cohorts={allCohorts}
-          cohortId={cohortId || undefined}
+          students={students} 
+          classes={allClasss}
+          classId={classId || undefined}
         />
       </main>
     );
@@ -83,7 +83,7 @@ export default async function NewChartPage({
                   <p className="text-sm text-muted-foreground">
                     {layout.type === "traditional"
                       ? `${layout.rows} × ${layout.columns} grid`
-                      : `${layout.numGroups} groups of ${layout.attendeesPerGroup}`}
+                      : `${layout.numGroups} groups of ${layout.studentsPerGroup} students`}
                   </p>
                 </CardContent>
               </Card>
@@ -105,20 +105,21 @@ export default async function NewChartPage({
       <div className="mb-8 space-y-1">
         <h1 className="text-3xl font-semibold tracking-tight">New Seating Chart</h1>
         <p className="text-sm text-muted-foreground">
-          Step 2: Pick a attendee cohort.
+          Step 2: Pick a class roster.
         </p>
       </div>
-<div className="grid gap-4 sm:grid-cols-2">
-  <Link href={`/charts/new?layoutId=${layoutId}&cohortId=`}>
-    <Card className="hover:bg-accent/50 transition-colors border-dashed">
-      <CardHeader className="flex flex-row items-center gap-4 pb-2">
-        <Users className="h-5 w-5 text-muted-foreground opacity-50" />
-        <CardTitle className="text-base">All Attendees (No Cohort)</CardTitle>
-      </CardHeader>
-    </Card>
-  </Link>
-  {cohorts.map((cohort) => (
-          <Link key={cohort.id} href={`/charts/new?layoutId=${layoutId}&cohortId=${cohort.id}`}>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link href={`/charts/new?layoutId=${layoutId}&classId=`}>
+          <Card className="hover:bg-accent/50 transition-colors border-dashed">
+            <CardHeader className="flex flex-row items-center gap-4 pb-2">
+              <Users className="h-5 w-5 text-muted-foreground opacity-50" />
+              <CardTitle className="text-base">All Students (No Class)</CardTitle>
+            </CardHeader>
+          </Card>
+        </Link>
+        {classes.map((cohort) => (
+          <Link key={cohort.id} href={`/charts/new?layoutId=${layoutId}&classId=${cohort.id}`}>
             <Card className="hover:bg-accent/50 transition-colors">
               <CardHeader className="flex flex-row items-center gap-4 pb-2">
                 <Users className="h-5 w-5 text-muted-foreground" />

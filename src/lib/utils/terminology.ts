@@ -1,5 +1,3 @@
-export type WorkspaceType = "education" | "events";
-
 export type Terminology = {
   person: string;
   people: string;
@@ -15,27 +13,15 @@ export type Terminology = {
 const EDUCATION_TERMINOLOGY: Terminology = {
   person: "Student",
   people: "Students",
-  group: "Cohort",
-  groups: "Cohorts",
+  group: "Class",
+  groups: "Classes",
   constraints: "Accommodations",
-  together: "Peer Tutors",
-  separate: "Avoid List",
+  together: "Peer supports",
+  separate: "Avoid pairing",
   roster: "Roster",
   externalId: "Student ID",
 };
 
-const EVENTS_TERMINOLOGY: Terminology = {
-  person: "Guest",
-  people: "Guests",
-  group: "Social Group",
-  groups: "Social Groups",
-  constraints: "Dietary & Accessibility",
-  together: "Must sit together",
-  separate: "Strictly separate",
-  roster: "Guest List",
-  externalId: "External ID / Ticket #",
-};
-
-export function getTerminology(workspaceType: WorkspaceType = "education"): Terminology {
-  return workspaceType === "events" ? EVENTS_TERMINOLOGY : EDUCATION_TERMINOLOGY;
+export function getTerminology(): Terminology {
+  return EDUCATION_TERMINOLOGY;
 }

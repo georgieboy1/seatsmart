@@ -14,7 +14,7 @@ function makeLayout(
     rows: 5,
     columns: 6,
     numGroups: null,
-    attendeesPerGroup: null,
+    studentsPerGroup: null,
     grid: [["seat"]],
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-02T00:00:00Z",
@@ -64,7 +64,7 @@ describe("LayoutsList", () => {
             rows: null,
             columns: null,
             numGroups: 4,
-            attendeesPerGroup: 4,
+            studentsPerGroup: 4,
           }),
         ]}
       />,

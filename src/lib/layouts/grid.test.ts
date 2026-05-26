@@ -57,7 +57,7 @@ describe("createTraditionalGrid", () => {
 
 describe("createGroupsGrid", () => {
   it("returns a grid with balanced pod clustering", () => {
-    // 4 groups of 4 attendees
+    // 4 groups of 4 students
     // podWidth = 2, podHeight = 2
     // numColsPods = 2, numRowsPods = 2
     // totalCols = 2 * (2 + 1) + 1 = 7
@@ -67,7 +67,7 @@ describe("createGroupsGrid", () => {
     expect(grid[0].length).toBe(7);
   });
 
-  it("places exactly numGroups × attendeesPerGroup seats", () => {
+  it("places exactly numGroups × studentsPerGroup seats", () => {
     const grid = createGroupsGrid(6, 4);
     expect(countCells(grid, "seat")).toBe(6 * 4);
   });
@@ -92,7 +92,7 @@ describe("createGroupsGrid", () => {
     }
   });
 
-  it("handles the smallest valid layout (1 group, 1 attendee)", () => {
+  it("handles the smallest valid layout (1 group, 1 student)", () => {
     const grid = createGroupsGrid(1, 1);
     // podWidth=1, podHeight=1, numColsPods=1, numRowsPods=1
     // totalCols = 1*(1+1)+1 = 3
@@ -104,7 +104,7 @@ describe("createGroupsGrid", () => {
 
   it("handles larger group sizes with 3-wide pods", () => {
     const grid = createGroupsGrid(2, 6);
-    // attendeesPerGroup = 6 -> podWidth = 3, podHeight = 2
+    // studentsPerGroup = 6 -> podWidth = 3, podHeight = 2
     // numGroups = 2 -> numColsPods = 2, numRowsPods = 1
     // totalCols = 2 * (3 + 1) + 1 = 9
     // totalRows = 1 * (2 + 1) + 1 = 4

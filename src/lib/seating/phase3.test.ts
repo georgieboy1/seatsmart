@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { Attendee } from "@/lib/types/attendee";
+import type { Student } from "@/lib/types/student";
 import { optimizeSeatSwaps } from "./phase3";
 
-function makeAttendee(overrides: Partial<Attendee> = {}): Attendee {
+function makeStudent(overrides: Partial<Student> = {}): Student {
   return {
-    id: "attendee-1",
+    id: "student-1",
     userId: "user-1",
     name: "Maya Chen",
     prosocialTraits: [],
@@ -21,14 +21,14 @@ function makeAttendee(overrides: Partial<Attendee> = {}): Attendee {
 
 describe("optimizeSeatSwaps", () => {
   it("accepts swaps that improve relationship score", () => {
-    const attendees = [
-      makeAttendee({ id: "maya", name: "Maya", togetherIds: ["sam"] }),
-      makeAttendee({ id: "sam", name: "Sam" }),
-      makeAttendee({ id: "jordan", name: "Jordan" }),
+    const students = [
+      makeStudent({ id: "maya", name: "Maya", togetherIds: ["sam"] }),
+      makeStudent({ id: "sam", name: "Sam" }),
+      makeStudent({ id: "jordan", name: "Jordan" }),
     ];
 
     const result = optimizeSeatSwaps({
-      attendees,
+      students,
       assignments: {
         "1,1": "maya",
         "1,2": "jordan",
@@ -47,13 +47,13 @@ describe("optimizeSeatSwaps", () => {
   });
 
   it("does not accept swaps that fail to improve score", () => {
-    const attendees = [
-      makeAttendee({ id: "maya", name: "Maya", togetherIds: ["sam"] }),
-      makeAttendee({ id: "sam", name: "Sam" }),
+    const students = [
+      makeStudent({ id: "maya", name: "Maya", togetherIds: ["sam"] }),
+      makeStudent({ id: "sam", name: "Sam" }),
     ];
 
     const result = optimizeSeatSwaps({
-      attendees,
+      students,
       assignments: {
         "1,1": "maya",
         "1,2": "sam",
@@ -66,14 +66,14 @@ describe("optimizeSeatSwaps", () => {
   });
 
   it("does not move locked seats", () => {
-    const attendees = [
-      makeAttendee({ id: "maya", name: "Maya", togetherIds: ["sam"] }),
-      makeAttendee({ id: "sam", name: "Sam" }),
-      makeAttendee({ id: "jordan", name: "Jordan" }),
+    const students = [
+      makeStudent({ id: "maya", name: "Maya", togetherIds: ["sam"] }),
+      makeStudent({ id: "sam", name: "Sam" }),
+      makeStudent({ id: "jordan", name: "Jordan" }),
     ];
 
     const result = optimizeSeatSwaps({
-      attendees,
+      students,
       assignments: {
         "1,1": "maya",
         "1,2": "jordan",
@@ -88,15 +88,15 @@ describe("optimizeSeatSwaps", () => {
   });
 
   it("stops at the max iteration cap", () => {
-    const attendees = [
-      makeAttendee({ id: "a", name: "A", togetherIds: ["b"] }),
-      makeAttendee({ id: "b", name: "B" }),
-      makeAttendee({ id: "c", name: "C", togetherIds: ["d"] }),
-      makeAttendee({ id: "d", name: "D" }),
+    const students = [
+      makeStudent({ id: "a", name: "A", togetherIds: ["b"] }),
+      makeStudent({ id: "b", name: "B" }),
+      makeStudent({ id: "c", name: "C", togetherIds: ["d"] }),
+      makeStudent({ id: "d", name: "D" }),
     ];
 
     const result = optimizeSeatSwaps({
-      attendees,
+      students,
       assignments: {
         "1,1": "a",
         "1,2": "c",
@@ -111,14 +111,14 @@ describe("optimizeSeatSwaps", () => {
   });
 
   it("recalculates relationship explanations after swaps", () => {
-    const attendees = [
-      makeAttendee({ id: "maya", name: "Maya", togetherIds: ["sam"] }),
-      makeAttendee({ id: "sam", name: "Sam" }),
-      makeAttendee({ id: "jordan", name: "Jordan" }),
+    const students = [
+      makeStudent({ id: "maya", name: "Maya", togetherIds: ["sam"] }),
+      makeStudent({ id: "sam", name: "Sam" }),
+      makeStudent({ id: "jordan", name: "Jordan" }),
     ];
 
     const result = optimizeSeatSwaps({
-      attendees,
+      students,
       assignments: {
         "1,1": "maya",
         "1,2": "jordan",
@@ -129,7 +129,7 @@ describe("optimizeSeatSwaps", () => {
 
     expect(
       Object.values(result.explanations).some((items) =>
-        items.some((item) => item.rule === "peer_tutor_adjacency"),
+        items.some((item) => item.rule === "together_list_adjacency"),
       ),
     ).toBe(true);
   });

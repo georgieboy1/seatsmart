@@ -2,8 +2,8 @@
 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { useState } from "react";
-import type { Attendee } from "@/lib/types/attendee";
+import { useState, useMemo } from "react";
+import type { Student } from "@/lib/types/student";
 import type { SeatExplanation } from "@/lib/seating/types";
 import { 
   Lock, 
@@ -20,9 +20,10 @@ import {
   LucideIcon,
   Leaf,
   Wheat,
-  Accessibility
+  Accessibility,
+  AlertTriangle
 } from "lucide-react";
-import { DietaryAccessibility } from "@/lib/attendees/constants";
+import { DietaryAccessibility } from "@/lib/students/constants";
 import {
   Tooltip,
   TooltipContent,
@@ -74,19 +75,19 @@ const DIETARY_ACCESSIBILITY_ICONS: Record<DietaryAccessibility, LucideIcon> = {
 
 type Props = {
   seatKey: string;
-  attendee?: Attendee;
-  unassignedAttendees: Attendee[];
+  student?: Student;
+  unassignedStudents: Student[];
   isLocked?: boolean;
   explanations?: SeatExplanation[];
   onLockToggle?: (seatKey: string) => void;
   onClear?: (seatKey: string) => void;
-  onAssign?: (seatKey: string, attendeeId: string) => void;
+  onAssign?: (seatKey: string, studentId: string) => void;
 };
 
 export function SeatItem({ 
   seatKey, 
-  attendee, 
-  unassignedAttendees,
+  student, 
+  unassignedStudents,
   isLocked, 
   explanations,
   onLockToggle,
@@ -104,31 +105,37 @@ export function SeatItem({
     isDragging 
   } = useDraggable({
     id: seatKey,
-    disabled: isLocked || !attendee,
-    data: { seatKey, attendee }
+    disabled: isLocked || !student,
+    data: { seatKey, student }
   });
 
   const { setNodeRef: setDroppableNodeRef, isOver } = useDroppable({
     id: seatKey,
-    data: { seatKey, attendee }
+    data: { seatKey, student }
   });
 
   const style = {
     transform: CSS.Translate.toString(transform),
   };
 
+  const hasWarnings = useMemo(() => 
+    explanations?.some(exp => exp.weight < 0),
+    [explanations]
+  );
+
   const content = (
     <div
       ref={setDroppableNodeRef}
       role="gridcell"
-      aria-label={attendee ? `Seat for ${attendee.name}` : "Empty seat"}
+      aria-label={student ? `Seat for ${student.name}` : "Empty seat"}
       className={cn(
         "relative aspect-square rounded-md border-2 p-1 transition-colors",
         isOver ? "border-primary bg-primary/10" : "border-muted-foreground/20 bg-card",
-        !attendee && "bg-muted/50 border-dashed"
+        !student && "bg-muted/50 border-dashed",
+        student && hasWarnings && !isOver && "border-amber-400 bg-amber-50 dark:bg-amber-950/20"
       )}
     >
-      {attendee ? (
+      {student ? (
         <div
           ref={setDraggableNodeRef}
           style={style}
@@ -136,33 +143,40 @@ export function SeatItem({
           {...attributes}
           role="button"
           aria-grabbed={isDragging}
-          aria-label={`Draggable ${t.person.toLowerCase()} ${attendee.name}. ${isLocked ? "Locked." : "Drag to swap."}`}
+          aria-label={`Draggable ${t.person.toLowerCase()} ${student.name}. ${isLocked ? "Locked." : "Drag to swap."}`}
           className={cn(
             "flex h-full w-full flex-col items-center justify-between text-center cursor-grab active:cursor-grabbing",
             isDragging && "opacity-0"
           )}
         >
-          <div className="flex w-full justify-between">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onLockToggle?.(seatKey);
-              }}
-              aria-label={isLocked ? `Unlock ${attendee.name}` : `Lock ${attendee.name} in this seat`}
-              className="p-0.5 hover:bg-muted rounded"
-            >
-              <Lock className={cn("h-3 w-3", isLocked ? "text-primary fill-primary" : "text-muted-foreground/30")} />
-            </button>
-            <div className="flex gap-0.5">
-              {attendee.constraints.slice(0, 2).map((acc) => {
+          <div className="flex w-full justify-between items-start">
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLockToggle?.(seatKey);
+                }}
+                aria-label={isLocked ? `Unlock ${student.name}` : `Lock ${student.name} in this seat`}
+                className="p-0.5 hover:bg-muted rounded"
+              >
+                <Lock className={cn("h-3 w-3", isLocked ? "text-primary fill-primary" : "text-muted-foreground/30")} />
+              </button>
+              {hasWarnings && (
+                <div className="p-0.5">
+                  <AlertTriangle className="h-3 w-3 text-amber-600" />
+                </div>
+              )}
+            </div>
+            <div className="flex gap-0.5 flex-wrap justify-end max-w-[50%]">
+              {student.constraints.slice(0, 3).map((acc) => {
                 const Icon = DIETARY_ACCESSIBILITY_ICONS[acc] || UserRound;
                 return (
                   <Tooltip key={acc}>
                     <TooltipTrigger asChild>
-                      <Icon className="h-3 w-3 text-primary" />
+                      <Icon className="h-3 w-3 text-primary/70" />
                     </TooltipTrigger>
                     <TooltipContent side="top">
-                      <p className="text-xs">{acc.replace(/-/g, " ")}</p>
+                      <p className="text-[10px]">{acc.replace(/_/g, " ").replace(/-/g, " ")}</p>
                     </TooltipContent>
                   </Tooltip>
                 );
@@ -172,18 +186,24 @@ export function SeatItem({
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="text-[10px] font-medium leading-tight line-clamp-2 px-0.5">
-                {attendee.name}
+              <span className="text-[11px] font-semibold leading-tight line-clamp-2 px-0.5 mb-0.5">
+                {student.name}
               </span>
             </TooltipTrigger>
             {explanations && explanations.length > 0 && (
-              <TooltipContent side="bottom" className="max-w-[200px]">
-                <div className="space-y-1">
-                  <p className="font-semibold text-xs mb-1">Placement reasons:</p>
+              <TooltipContent side="bottom" className="max-w-[200px] p-2">
+                <div className="space-y-1.5">
+                  <p className="font-bold text-[11px] border-b pb-1">Placement Analysis</p>
                   {explanations.map((exp, i) => (
-                    <p key={i} className="text-[10px] leading-tight text-muted-foreground">
-                      • {exp.reason}
-                    </p>
+                    <div key={i} className="flex gap-1.5 items-start">
+                      <div className={cn(
+                        "size-1.5 rounded-full mt-1 shrink-0",
+                        exp.weight > 0 ? "bg-emerald-500" : exp.weight < 0 ? "bg-amber-500" : "bg-muted-foreground"
+                      )} />
+                      <p className="text-[10px] leading-tight">
+                        {exp.reason}
+                      </p>
+                    </div>
                   ))}
                 </div>
               </TooltipContent>
@@ -207,8 +227,8 @@ export function SeatItem({
                 <CommandList>
                   <CommandEmpty>No {t.people.toLowerCase()} found.</CommandEmpty>
                   <CommandGroup heading={`Unplaced ${t.people}`}>
-                    {unassignedAttendees.length > 0 ? (
-                      unassignedAttendees.map((g) => (
+                    {unassignedStudents.length > 0 ? (
+                      unassignedStudents.map((g) => (
                         <CommandItem
                           key={g.id}
                           onSelect={() => {
@@ -240,7 +260,7 @@ export function SeatItem({
         {content}
       </ContextMenuTrigger>
       <ContextMenuContent className="w-48">
-        {attendee ? (
+        {student ? (
           <>
             <ContextMenuItem onClick={() => onLockToggle?.(seatKey)}>
               {isLocked ? (

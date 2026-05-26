@@ -3,7 +3,6 @@ import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
 import { TerminologyProvider } from "@/components/providers/terminology-provider";
-import { getProfile } from "@/lib/attendees/profile";
 import Link from "next/link";
 import { AlertCircle } from "lucide-react";
 import "./globals.css";
@@ -27,7 +26,7 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: "SynDesk",
-  description: "Event & Wedding seating, automated.",
+  description: "Classroom seating, automated.",
 };
 
 export default async function RootLayout({
@@ -35,9 +34,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const profile = await getProfile();
-  const workspaceType = profile?.workspaceType ?? "education";
-
   return (
     <html
       lang="en"
@@ -54,7 +50,7 @@ export default async function RootLayout({
             <span>SynDesk is optimized for desktop. Some features may be limited on mobile.</span>
           </div>
         </div>
-        <TerminologyProvider workspaceType={workspaceType}>
+        <TerminologyProvider>
           <TooltipProvider>
             <div className="flex-1 flex flex-col">
               {children}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ClassroomLayout } from "@/lib/types/layout";
-import type { Attendee } from "@/lib/types/attendee";
+import type { Student } from "@/lib/types/student";
 import { computePodMap } from "./distance";
 import {
   checkSeparation,
@@ -10,7 +10,7 @@ import {
   violatingPartners,
 } from "./separation";
 
-function makeAttendee(overrides: Partial<Attendee> = {}): Attendee {
+function makeStudent(overrides: Partial<Student> = {}): Student {
   return {
     id: "a",
     userId: "u",
@@ -36,28 +36,27 @@ function makeLayout(grid: ClassroomLayout["grid"]): ClassroomLayout {
     rows: null,
     columns: null,
     numGroups: null,
-    attendeesPerGroup: null,
+    studentsPerGroup: null,
     grid,
-    venueId: null,
     createdAt: "x",
     updatedAt: "x",
   };
 }
 
 describe("separationConstraints", () => {
-  it("returns empty for attendees with no separateIds", () => {
-    expect(separationConstraints([makeAttendee({ id: "x" })])).toEqual([]);
+  it("returns empty for students with no separateIds", () => {
+    expect(separationConstraints([makeStudent({ id: "x" })])).toEqual([]);
   });
 
   it("extracts one constraint per pair regardless of direction", () => {
     const result = separationConstraints([
-      makeAttendee({ id: "amy", separateIds: ["bob"] }),
-      makeAttendee({ id: "bob", separateIds: ["amy"] }),
+      makeStudent({ id: "amy", separateIds: ["bob"] }),
+      makeStudent({ id: "bob", separateIds: ["amy"] }),
     ]);
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({
-      attendeeA: "amy",
-      attendeeB: "bob",
+      studentA: "amy",
+      studentB: "bob",
       minDistance: 2,
     });
   });
@@ -65,8 +64,8 @@ describe("separationConstraints", () => {
   it("uses the provided defaultD on every constraint", () => {
     const result = separationConstraints(
       [
-        makeAttendee({ id: "amy", separateIds: ["bob"] }),
-        makeAttendee({ id: "bob" }),
+        makeStudent({ id: "amy", separateIds: ["bob"] }),
+        makeStudent({ id: "bob" }),
       ],
       5,
     );
@@ -75,7 +74,7 @@ describe("separationConstraints", () => {
 
   it("ignores self-references", () => {
     expect(
-      separationConstraints([makeAttendee({ id: "x", separateIds: ["x"] })]),
+      separationConstraints([makeStudent({ id: "x", separateIds: ["x"] })]),
     ).toEqual([]);
   });
 });
@@ -85,13 +84,13 @@ describe("isSeatFeasible", () => {
   const podMap = computePodMap(layout);
   const constraints = separationConstraints(
     [
-      makeAttendee({ id: "amy", separateIds: ["bob"] }),
-      makeAttendee({ id: "bob" }),
+      makeStudent({ id: "amy", separateIds: ["bob"] }),
+      makeStudent({ id: "bob" }),
     ],
     2,
   );
 
-  it("returns true when no constraint applies to the attendee", () => {
+  it("returns true when no constraint applies to the student", () => {
     expect(
       isSeatFeasible("0,0", "carol", {}, constraints, layout, podMap),
     ).toBe(true);
@@ -124,9 +123,9 @@ describe("countViolations", () => {
 
   it("counts every conflicted partner that's too close", () => {
     const constraints = separationConstraints([
-      makeAttendee({ id: "amy", separateIds: ["bob", "carol"] }),
-      makeAttendee({ id: "bob" }),
-      makeAttendee({ id: "carol" }),
+      makeStudent({ id: "amy", separateIds: ["bob", "carol"] }),
+      makeStudent({ id: "bob" }),
+      makeStudent({ id: "carol" }),
     ]);
     const assignments = { "0,0": "bob" }; // carol not placed yet
     // Amy at (0,1) is adjacent to Bob → 1 violation; carol not placed → not counted.
@@ -142,23 +141,23 @@ describe("checkSeparation", () => {
 
   it("returns no violations when nobody is placed", () => {
     const constraints = separationConstraints([
-      makeAttendee({ id: "amy", separateIds: ["bob"] }),
-      makeAttendee({ id: "bob" }),
+      makeStudent({ id: "amy", separateIds: ["bob"] }),
+      makeStudent({ id: "bob" }),
     ]);
     expect(checkSeparation({}, constraints, layout, podMap)).toEqual([]);
   });
 
   it("reports a violation with both seat keys and actual distance", () => {
     const constraints = separationConstraints([
-      makeAttendee({ id: "amy", separateIds: ["bob"] }),
-      makeAttendee({ id: "bob" }),
+      makeStudent({ id: "amy", separateIds: ["bob"] }),
+      makeStudent({ id: "bob" }),
     ]);
     const assignments = { "0,0": "amy", "0,1": "bob" };
     const violations = checkSeparation(assignments, constraints, layout, podMap);
     expect(violations).toHaveLength(1);
     expect(violations[0]).toMatchObject({
-      attendeeA: "amy",
-      attendeeB: "bob",
+      studentA: "amy",
+      studentB: "bob",
       actualDistance: 1,
       minDistance: 2,
     });
@@ -169,15 +168,15 @@ describe("violatingPartners", () => {
   const layout = makeLayout([["seat", "seat", "seat"]]);
   const podMap = computePodMap(layout);
 
-  it("returns the placed attendees that conflict at the given seat", () => {
-    const amy = makeAttendee({
+  it("returns the placed students that conflict at the given seat", () => {
+    const amy = makeStudent({
       id: "amy",
       name: "Amy",
       separateIds: ["bob"],
     });
-    const bob = makeAttendee({ id: "bob", name: "Bob" });
+    const bob = makeStudent({ id: "bob", name: "Bob" });
     const constraints = separationConstraints([amy, bob]);
-    const byId = new Map<string, Attendee>([
+    const byId = new Map<string, Student>([
       [amy.id, amy],
       [bob.id, bob],
     ]);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ClassroomLayout } from "@/lib/types/layout";
-import type { Attendee } from "@/lib/types/attendee";
+import type { Student } from "@/lib/types/student";
 import { identifyAnchors, rankByTogetherCentrality } from "./anchors";
 
 function makeLayout(
@@ -15,15 +15,14 @@ function makeLayout(
     rows: null,
     columns: null,
     numGroups: null,
-    attendeesPerGroup: null,
+    studentsPerGroup: null,
     grid,
-    venueId: null,
     createdAt: "x",
     updatedAt: "x",
   };
 }
 
-function makeAttendee(overrides: Partial<Attendee> = {}): Attendee {
+function makeStudent(overrides: Partial<Student> = {}): Student {
   return {
     id: "a",
     userId: "u",
@@ -105,45 +104,45 @@ describe("identifyAnchors (groups)", () => {
 });
 
 describe("rankByTogetherCentrality", () => {
-  it("returns empty for attendees with zero links", () => {
+  it("returns empty for students with zero links", () => {
     expect(
       rankByTogetherCentrality([
-        makeAttendee({ id: "a" }),
-        makeAttendee({ id: "b" }),
+        makeStudent({ id: "a" }),
+        makeStudent({ id: "b" }),
       ]),
     ).toEqual([]);
   });
 
   it("sorts by combined inbound + outbound degree, desc", () => {
     const ranked = rankByTogetherCentrality([
-      makeAttendee({ id: "hub", name: "Hub", togetherIds: ["a", "b", "c"] }),
-      makeAttendee({ id: "a", name: "Alice" }),
-      makeAttendee({ id: "b", name: "Bob" }),
-      makeAttendee({ id: "c", name: "Carol", togetherIds: ["hub"] }),
+      makeStudent({ id: "hub", name: "Hub", togetherIds: ["a", "b", "c"] }),
+      makeStudent({ id: "a", name: "Alice" }),
+      makeStudent({ id: "b", name: "Bob" }),
+      makeStudent({ id: "c", name: "Carol", togetherIds: ["hub"] }),
     ]);
 
     // Hub:   3 outbound + 1 inbound (from Carol)  = 4
     // Carol: 1 outbound + 1 inbound (from Hub)    = 2
     // Alice: 0 outbound + 1 inbound (from Hub)    = 1
     // Bob:   0 outbound + 1 inbound (from Hub)    = 1
-    expect(ranked[0].attendee.id).toBe("hub");
+    expect(ranked[0].student.id).toBe("hub");
     expect(ranked[0].centrality).toBe(4);
-    expect(ranked[1].attendee.id).toBe("c"); // Carol's id literal in fixture
+    expect(ranked[1].student.id).toBe("c"); // Carol's id literal in fixture
     expect(ranked[1].centrality).toBe(2);
     // Alice + Bob tie at 1; alphabetical breaks tie.
-    expect(ranked[2].attendee.name).toBe("Alice");
-    expect(ranked[3].attendee.name).toBe("Bob");
+    expect(ranked[2].student.name).toBe("Alice");
+    expect(ranked[3].student.name).toBe("Bob");
   });
 
-  it("filters out zero-centrality attendees entirely", () => {
+  it("filters out zero-centrality students entirely", () => {
     const ranked = rankByTogetherCentrality([
-      makeAttendee({ id: "hub", name: "Hub", togetherIds: ["a"] }),
-      makeAttendee({ id: "a", name: "Alice" }),
-      makeAttendee({ id: "noone", name: "NoOne" }),
+      makeStudent({ id: "hub", name: "Hub", togetherIds: ["a"] }),
+      makeStudent({ id: "a", name: "Alice" }),
+      makeStudent({ id: "noone", name: "NoOne" }),
     ]);
     // Both Hub (1 outbound) and Alice (1 inbound) have centrality=1.
     // Tie-break is alphabetical by name: Alice < Hub.
-    expect(ranked.map((r) => r.attendee.id)).toEqual(["a", "hub"]);
-    expect(ranked.find((r) => r.attendee.id === "noone")).toBeUndefined();
+    expect(ranked.map((r) => r.student.id)).toEqual(["a", "hub"]);
+    expect(ranked.find((r) => r.student.id === "noone")).toBeUndefined();
   });
 });

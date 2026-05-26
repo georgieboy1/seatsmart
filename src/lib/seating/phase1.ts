@@ -1,5 +1,5 @@
 import type { ClassroomLayout } from "@/lib/types/layout";
-import type { Attendee } from "@/lib/types/attendee";
+import type { Student } from "@/lib/types/student";
 import { getSeatCandidates, positionKey } from "./geometry";
 import { scoreConstraintsFit } from "./scoring";
 import {
@@ -12,15 +12,15 @@ import type { SeatExplanation, SeatingIssue } from "./types";
 
 export type Phase1Result = {
   assignments: Record<string, string>;
-  placedAttendeeIds: Set<string>;
+  placedStudentIds: Set<string>;
   availableSeatKeys: string[];
   issues: SeatingIssue[];
   explanations: Record<string, SeatExplanation[]>;
 };
 
-function constrainedAttendees(attendees: Attendee[]): Attendee[] {
-  return attendees
-    .filter((attendee) => attendee.constraints.length > 0)
+function constrainedStudents(students: Student[]): Student[] {
+  return students
+    .filter((student) => student.constraints.length > 0)
     .toSorted((a, b) => {
       const accommodationDiff = b.constraints.length - a.constraints.length;
       if (accommodationDiff !== 0) return accommodationDiff;
@@ -28,8 +28,8 @@ function constrainedAttendees(attendees: Attendee[]): Attendee[] {
     });
 }
 
-export function placeDietaryAccessibilityAttendees(
-  attendees: Attendee[],
+export function placeDietaryAccessibilityStudents(
+  students: Student[],
   layout: ClassroomLayout,
   lockedSeats: Record<string, string> = {},
   constraints: SeparationConstraint[] = [],
@@ -40,8 +40,8 @@ export function placeDietaryAccessibilityAttendees(
   const assignments: Record<string, string> = {};
   const explanations: Record<string, SeatExplanation[]> = {};
   const issues: SeatingIssue[] = [];
-  const placedAttendeeIds = new Set<string>();
-  const attendeesById = new Map(attendees.map((a) => [a.id, a]));
+  const placedStudentIds = new Set<string>();
+  const studentsById = new Map(students.map((a) => [a.id, a]));
   const minDistance = constraints[0]?.minDistance ?? 2;
 
   for (const [seatKey, externalId] of Object.entries(lockedSeats)) {
@@ -56,28 +56,28 @@ export function placeDietaryAccessibilityAttendees(
 
     assignments[seatKey] = externalId;
     explanations[seatKey] = explanations[seatKey] ?? [];
-    placedAttendeeIds.add(externalId);
+    placedStudentIds.add(externalId);
   }
 
   const available = candidates.filter((candidate) => !assignments[candidate.key]);
 
-  for (const attendee of constrainedAttendees(attendees)) {
-    if (placedAttendeeIds.has(attendee.id)) {
+  for (const student of constrainedStudents(students)) {
+    if (placedStudentIds.has(student.id)) {
       continue;
     }
 
     if (available.length === 0) {
       issues.push({
         severity: "warning",
-        message: `No available seat for ${attendee.name}'s constraints.`,
-        externalIds: [attendee.id],
+        message: `No available seat for ${student.name}'s constraints.`,
+        externalIds: [student.id],
       });
       continue;
     }
 
     const ranked = available
       .map((candidate) => {
-        const fit = scoreConstraintsFit(attendee, layout, candidate.position);
+        const fit = scoreConstraintsFit(student, layout, candidate.position);
         return { candidate, ...fit };
       })
       .toSorted((a, b) => {
@@ -89,7 +89,7 @@ export function placeDietaryAccessibilityAttendees(
     const feasibleRanked = ranked.filter((r) =>
       isSeatFeasible(
         r.candidate.key,
-        attendee.id,
+        student.id,
         assignments,
         constraints,
         layout,
@@ -111,7 +111,7 @@ export function placeDietaryAccessibilityAttendees(
           r,
           violations: countViolations(
             r.candidate.key,
-            attendee.id,
+            student.id,
             assignments,
             constraints,
             layout,
@@ -126,15 +126,15 @@ export function placeDietaryAccessibilityAttendees(
       isViolation = true;
     }
 
-    assignments[chosen.candidate.key] = attendee.id;
+    assignments[chosen.candidate.key] = student.id;
     const seatExplanations: SeatExplanation[] = [...chosen.explanations];
 
     if (tradeoff) {
       const partners = violatingPartners(
         ranked[0].candidate.key,
-        attendee.id,
+        student.id,
         assignments,
-        attendeesById,
+        studentsById,
         constraints,
         layout,
         podMap,
@@ -142,36 +142,36 @@ export function placeDietaryAccessibilityAttendees(
       seatExplanations.push({
         rule: "min_distance_kept",
         weight: 5,
-        reason: `Placed here to keep ${attendee.name} ≥${minDistance} seats from ${partners.map((p) => p.name).join(", ") || "conflicted attendees"}.`,
+        reason: `Placed here to keep ${student.name} ≥${minDistance} seats from ${partners.map((p) => p.name).join(", ") || "conflicted students"}.`,
       });
     }
 
     if (isViolation) {
       const partners = violatingPartners(
         chosen.candidate.key,
-        attendee.id,
+        student.id,
         assignments,
-        attendeesById,
+        studentsById,
         constraints,
         layout,
         podMap,
       );
       const partnerNames =
-        partners.map((p) => p.name).join(", ") || "another conflicted attendee";
+        partners.map((p) => p.name).join(", ") || "another conflicted student";
       seatExplanations.push({
         rule: "min_distance_violated",
         weight: -50,
-        reason: `${attendee.name} could not be separated from ${partnerNames} — no seat in this room satisfies the ≥${minDistance} minimum.`,
+        reason: `${student.name} could not be separated from ${partnerNames} — no seat in this room satisfies the ≥${minDistance} minimum.`,
       });
       issues.push({
         severity: "error",
-        message: `${attendee.name} must be ≥${minDistance} seats apart from ${partnerNames} but the room is too small.`,
-        externalIds: [attendee.id, ...partners.map((p) => p.id)],
+        message: `${student.name} must be ≥${minDistance} seats apart from ${partnerNames} but the room is too small.`,
+        externalIds: [student.id, ...partners.map((p) => p.id)],
       });
     }
 
     explanations[chosen.candidate.key] = seatExplanations;
-    placedAttendeeIds.add(attendee.id);
+    placedStudentIds.add(student.id);
     available.splice(
       available.findIndex((candidate) => candidate.key === chosen.candidate.key),
       1,
@@ -180,8 +180,8 @@ export function placeDietaryAccessibilityAttendees(
     if (chosen.score < 0 && !isViolation) {
       issues.push({
         severity: "warning",
-        message: `${attendee.name}'s constraints could not be fully satisfied.`,
-        externalIds: [attendee.id],
+        message: `${student.name}'s constraints could not be fully satisfied.`,
+        externalIds: [student.id],
         position: chosen.candidate.position,
       });
     }
@@ -189,7 +189,7 @@ export function placeDietaryAccessibilityAttendees(
 
   return {
     assignments,
-    placedAttendeeIds,
+    placedStudentIds,
     availableSeatKeys: available.map((candidate) =>
       positionKey(candidate.position),
     ),

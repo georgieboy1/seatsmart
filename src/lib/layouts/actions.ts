@@ -43,7 +43,7 @@ function parseFormData(formData: FormData) {
     rows: isTraditional ? num("rows") : null,
     columns: isTraditional ? num("columns") : null,
     numGroups: !isTraditional ? num("numGroups") : null,
-    attendeesPerGroup: !isTraditional ? num("attendeesPerGroup") : null,
+    studentsPerGroup: !isTraditional ? num("studentsPerGroup") : null,
     grid,
   };
 }
@@ -62,7 +62,7 @@ export async function createDefaultLayout() {
           rows: 5,
           columns: 6,
           numGroups: null,
-          attendeesPerGroup: null,
+          studentsPerGroup: null,
           grid,
         },
         userId,
@@ -154,7 +154,7 @@ export async function updateLayout(id: string, formData: FormData) {
       rows: result.data.rows,
       columns: result.data.columns,
       num_groups: result.data.numGroups,
-      attendees_per_group: result.data.attendeesPerGroup,
+      students_per_group: result.data.studentsPerGroup,
       grid: result.data.grid,
     })
     .eq("id", id)
@@ -216,7 +216,7 @@ export async function duplicateLayout(id: string) {
           rows: sourceLayout.rows,
           columns: sourceLayout.columns,
           numGroups: sourceLayout.numGroups,
-          attendeesPerGroup: sourceLayout.attendeesPerGroup,
+          studentsPerGroup: sourceLayout.studentsPerGroup,
           grid: sourceLayout.grid,
         },
         userId,

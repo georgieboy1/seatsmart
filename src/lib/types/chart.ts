@@ -2,7 +2,7 @@ export type SeatingChart = {
   id: string;
   userId: string;
   layoutId: string;
-  cohortId?: string | null;
+  classId?: string | null;
   name: string;
   assignments: Record<string, string>;
   lockedSeats: Record<string, string>;

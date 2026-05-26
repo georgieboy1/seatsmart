@@ -12,14 +12,14 @@ export function downloadFile(content: string, fileName: string, contentType: str
 export function exportToCsv(
   name: string,
   assignments: Record<string, string>,
-  attendeesById: Map<string, { name: string }>
+  studentsById: Map<string, { name: string }>
 ) {
-  const rows = [["Seat Position", "Attendee Name"]];
+  const rows = [["Seat Position", "Student Name"]];
   
   Object.entries(assignments).forEach(([key, externalId]) => {
-    const attendee = attendeesById.get(externalId);
-    if (attendee) {
-      rows.push([key, attendee.name]);
+    const student = studentsById.get(externalId);
+    if (student) {
+      rows.push([key, student.name]);
     }
   });
 

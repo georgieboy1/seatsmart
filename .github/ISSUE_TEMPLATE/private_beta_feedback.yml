@@ -1,0 +1,55 @@
+name: Private beta feedback
+description: Feedback from a teacher testing SynDesk private beta
+title: "[Beta feedback]: "
+labels: ["private-beta", "feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing SynDesk. Please avoid including real student names
+        or sensitive accommodation details in this issue.
+  - type: input
+    id: role
+    attributes:
+      label: Teaching role
+      description: Grade band, subject, or context is enough.
+      placeholder: "Example: 8th grade math teacher"
+  - type: textarea
+    id: goal
+    attributes:
+      label: What were you trying to do?
+      placeholder: "Example: create a seating chart for my first-period class"
+    validations:
+      required: true
+  - type: textarea
+    id: worked
+    attributes:
+      label: What worked well?
+      placeholder: "What felt clear, fast, or useful?"
+  - type: textarea
+    id: confusing
+    attributes:
+      label: What was confusing or frustrating?
+      placeholder: "Where did you hesitate, get stuck, or distrust the result?"
+    validations:
+      required: true
+  - type: textarea
+    id: placement_report
+    attributes:
+      label: Did the Placement Report help you trust the chart?
+      placeholder: "Which explanations helped? Which were unclear?"
+  - type: dropdown
+    id: monday_ready
+    attributes:
+      label: Would you use the generated chart in a real classroom?
+      options:
+        - "Yes, as-is"
+        - "Yes, after manual edits"
+        - "Not yet"
+    validations:
+      required: true
+  - type: textarea
+    id: missing
+    attributes:
+      label: What is missing for private beta?
+      placeholder: "One or two things that would make this more useful."

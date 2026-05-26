@@ -1,18 +1,16 @@
 "use client";
 
 import { createContext, useContext, ReactNode } from "react";
-import { getTerminology, type Terminology, type WorkspaceType } from "@/lib/utils/terminology";
+import { getTerminology, type Terminology } from "@/lib/utils/terminology";
 
 const TerminologyContext = createContext<Terminology | null>(null);
 
 export function TerminologyProvider({
-  workspaceType,
   children,
 }: {
-  workspaceType: WorkspaceType;
   children: ReactNode;
 }) {
-  const terminology = getTerminology(workspaceType);
+  const terminology = getTerminology();
   return (
     <TerminologyContext.Provider value={terminology}>
       {children}

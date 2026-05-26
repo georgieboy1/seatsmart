@@ -1,6 +1,6 @@
 import type { CellType, ClassroomLayout } from "@/lib/types/layout";
-import type { Attendee } from "@/lib/types/attendee";
-import type { DietaryAccessibility } from "@/lib/attendees/constants";
+import type { Student } from "@/lib/types/student";
+import type { DietaryAccessibility } from "@/lib/students/constants";
 import {
   findFeaturePositions,
   isAdjacent,
@@ -20,25 +20,6 @@ const FEATURE_CONSTRAINTS: Partial<Record<DietaryAccessibility, CellType>> = {
   near_teacher: "teacher_desk",
   near_charging: "charging_station",
   away_from_window: "window",
-};
-
-const CONSTRAINT_LABELS: Record<DietaryAccessibility, string> = {
-  near_door: "near the entrance",
-  near_teacher: "near the lead station",
-  away_from_window: "away from windows",
-  near_charging: "near power",
-  front_of_room: "front row",
-  hearing_left: "left side support",
-  hearing_right: "right side support",
-  vision_front: "front vision support",
-  vegan: "vegan dietary needs",
-  vegetarian: "vegetarian dietary needs",
-  "gluten-free": "gluten-free dietary needs",
-  "nut-allergy": "nut-free environment",
-  "dairy-free": "dairy-free dietary needs",
-  "wheelchair-access": "wheelchair accessibility",
-  "low-hearing": "hearing support",
-  "service-animal": "service animal space",
 };
 
 function explanation(
@@ -78,14 +59,14 @@ function sideOfRoomScore(
 }
 
 export function scoreConstraintsFit(
-  attendee: Attendee,
+  student: Student,
   layout: ClassroomLayout,
   position: SeatPosition,
 ): ScoreResult {
   let score = 0;
   const explanations: SeatExplanation[] = [];
 
-  for (const constraint of attendee.constraints) {
+  for (const constraint of student.constraints) {
     if (constraint === "front_of_room" || constraint === "vision_front") {
       const weight = isFrontOfRoom(position) ? 30 : -30;
       score += weight;
@@ -94,8 +75,8 @@ export function scoreConstraintsFit(
           constraint,
           weight,
           isFrontOfRoom(position)
-            ? `${attendee.name} is placed at the front.`
-            : `${attendee.name} is not at the front.`,
+            ? `${student.name} placed at the front for support.`
+            : `${student.name} not placed at the front.`,
         ),
       );
       continue;
@@ -110,8 +91,8 @@ export function scoreConstraintsFit(
           constraint,
           weight,
           weight > 0
-            ? `${attendee.name} is seated on the ${side} side.`
-            : `${attendee.name} is not seated on the ${side} side.`,
+            ? `${student.name} seated on the ${side} for hearing support.`
+            : `${student.name} not on the ${side} side.`,
         ),
       );
       continue;
@@ -126,7 +107,7 @@ export function scoreConstraintsFit(
         explanation(
           constraint,
           -15,
-          `No ${feature.replaceAll("_", " ")} is present for ${attendee.name}'s ${CONSTRAINT_LABELS[constraint as DietaryAccessibility]} constraint.`,
+          `No ${feature.replaceAll("_", " ")} available for ${student.name}'s accommodation.`,
         ),
       );
       score -= 15;
@@ -143,8 +124,8 @@ export function scoreConstraintsFit(
         constraint,
         weight,
         constraint === "away_from_window"
-          ? `${attendee.name} is ${distance} cell${distance === 1 ? "" : "s"} from the nearest window.`
-          : `${attendee.name} is ${distance} cell${distance === 1 ? "" : "s"} from ${CONSTRAINT_LABELS[constraint as DietaryAccessibility]}.`,
+          ? `${student.name} placed away from windows.`
+          : `${student.name} placed near ${feature.replaceAll("_", " ")} for support.`,
       ),
     );
   }
@@ -153,9 +134,9 @@ export function scoreConstraintsFit(
 }
 
 export function scoreRelationshipPair(
-  a: Attendee,
+  a: Student,
   aPosition: SeatPosition,
-  b: Attendee,
+  b: Student,
   bPosition: SeatPosition,
 ): ScoreResult {
   if (!isAdjacent(aPosition, bPosition)) {
@@ -172,7 +153,7 @@ export function scoreRelationshipPair(
       explanation(
         "together_list_adjacency",
         10,
-        `${a.name} and ${b.name} are requested to be together and are adjacent.`,
+        `${a.name} placed beside peer support ${b.name}.`,
       ),
     );
   }
@@ -184,7 +165,7 @@ export function scoreRelationshipPair(
       explanation(
         "separate_list_adjacency",
         -50,
-        `${a.name} and ${b.name} must be separate but are adjacent.`,
+        `${a.name} and ${b.name} are adjacent despite "avoid pairing" request.`,
       ),
     );
   }
@@ -220,14 +201,14 @@ export function scoreRelationshipPair(
 }
 
 export function scoreSeatingRelationships(
-  attendees: Attendee[],
+  students: Student[],
   assignments: Record<string, string>,
 ): ScoreResult {
-  const attendeesById = new Map(attendees.map((attendee) => [attendee.id, attendee]));
+  const studentsById = new Map(students.map((student) => [student.id, student]));
   const placed = Object.entries(assignments)
     .map(([key, externalId]) => {
-      const attendee = attendeesById.get(externalId);
-      return attendee ? { key, attendee, position: parsePositionKey(key) } : null;
+      const student = studentsById.get(externalId);
+      return student ? { key, student, position: parsePositionKey(key) } : null;
     })
     .filter((item): item is NonNullable<typeof item> => item != null);
 
@@ -237,9 +218,9 @@ export function scoreSeatingRelationships(
   for (let i = 0; i < placed.length; i += 1) {
     for (let j = i + 1; j < placed.length; j += 1) {
       const pairScore = scoreRelationshipPair(
-        placed[i].attendee,
+        placed[i].student,
         placed[i].position,
-        placed[j].attendee,
+        placed[j].student,
         placed[j].position,
       );
       score += pairScore.score;
@@ -251,15 +232,15 @@ export function scoreSeatingRelationships(
 }
 
 export function explainAssignments(
-  attendees: Attendee[],
+  students: Student[],
   assignments: Record<string, string>,
 ): Record<string, SeatExplanation[]> {
-  const attendeesById = new Map(attendees.map((attendee) => [attendee.id, attendee]));
+  const studentsById = new Map(students.map((student) => [student.id, student]));
   const explanations: Record<string, SeatExplanation[]> = {};
   const placed = Object.entries(assignments)
     .map(([key, externalId]) => {
-      const attendee = attendeesById.get(externalId);
-      return attendee ? { key, attendee, position: parsePositionKey(key) } : null;
+      const student = studentsById.get(externalId);
+      return student ? { key, student, position: parsePositionKey(key) } : null;
     })
     .filter((item): item is NonNullable<typeof item> => item != null);
 
@@ -270,9 +251,9 @@ export function explainAssignments(
   for (let i = 0; i < placed.length; i += 1) {
     for (let j = i + 1; j < placed.length; j += 1) {
       const pairScore = scoreRelationshipPair(
-        placed[i].attendee,
+        placed[i].student,
         placed[i].position,
-        placed[j].attendee,
+        placed[j].student,
         placed[j].position,
       );
 
