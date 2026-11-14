@@ -40,6 +40,6 @@ if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
   PARENT_ARGS=(-p "$PARENT")
 fi
 
-COMMIT="$(git commit-tree "$TREE" "${PARENT_ARGS[@]}" -m "Deploy SynDesk from ${SOURCE_SHA}")"
+COMMIT="$(git commit-tree "$TREE" ${PARENT_ARGS[@]+"${PARENT_ARGS[@]}"} -m "Deploy SynDesk from ${SOURCE_SHA}")"
 git push -q origin "${COMMIT}:refs/heads/gh-pages"
 echo "Deployed ${SOURCE_SHA} to gh-pages (${COMMIT:0:7})."
