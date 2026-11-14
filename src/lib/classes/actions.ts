@@ -1,141 +1,59 @@
-"use server";
-
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import * as db from "@/lib/local/store";
+import { go, withMessage } from "@/lib/local/nav";
 import type { Class } from "@/lib/types/class";
-import { classToInsert, rowToClass, type ClassRow } from "./db";
+import { classToInsert, rowToClass } from "./db";
 import { classCreateSchema, classUpdateSchema } from "./schemas";
 
 const CLASS_DELETED_STALE_REASON = "class was deleted";
 
-async function requireUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  return { supabase, userId: user.id };
-}
-
 export async function createClass(formData: FormData) {
-  const name = String(formData.get("name") ?? "");
-  const result = classCreateSchema.safeParse({ name });
-
+  const result = classCreateSchema.safeParse({ name: String(formData.get("name") ?? "") });
   if (!result.success) {
-    const message = result.error.issues[0]?.message ?? "Invalid class";
-    redirect(`/dashboard?error=${encodeURIComponent(message)}`);
+    go(withMessage("/dashboard", "error", result.error.issues[0]?.message ?? "Invalid class"));
+    return;
   }
-
-  const { supabase, userId } = await requireUser();
-
-  const { error } = await supabase
-    .from("cohorts")
-    .insert(classToInsert({ name: result.data.name }, userId));
-
-  if (error) {
-    redirect(`/dashboard?error=${encodeURIComponent(error.message)}`);
-  }
-
-  revalidatePath("/dashboard");
-  redirect("/dashboard?success=Class+created+successfully");
+  db.insert("cohorts", [classToInsert({ name: result.data.name }, db.LOCAL_USER_ID)]);
+  go(withMessage("/dashboard", "success", "Class created successfully"));
 }
 
 export async function updateClass(id: string, formData: FormData) {
-  const name = String(formData.get("name") ?? "");
-  const result = classUpdateSchema.safeParse({ name });
-
+  const result = classUpdateSchema.safeParse({ name: String(formData.get("name") ?? "") });
   if (!result.success) {
-    const message = result.error.issues[0]?.message ?? "Invalid class";
-    redirect(`/classes?error=${encodeURIComponent(message)}`);
+    go(withMessage("/classes", "error", result.error.issues[0]?.message ?? "Invalid class"));
+    return;
   }
-
-  const { supabase, userId } = await requireUser();
-
-  const { error } = await supabase
-    .from("cohorts")
-    .update({ name: result.data.name })
-    .eq("id", id)
-    .eq("user_id", userId);
-
-  if (error) {
-    redirect(`/classes?error=${encodeURIComponent(error.message)}`);
-  }
-
-  revalidatePath("/dashboard");
-  revalidatePath("/classes");
-  redirect("/classes?success=Class+updated+successfully");
+  db.update("cohorts", [id], { name: result.data.name });
+  go(withMessage("/classes", "success", "Class updated successfully"));
 }
 
 export async function listClasses(): Promise<Class[]> {
-  const { supabase, userId } = await requireUser();
-
-  const { data, error } = await supabase
-    .from("cohorts")
-    .select("*")
-    .eq("user_id", userId)
-    .order("name", { ascending: true });
-
-  if (error) {
-    throw new Error(`Failed to load classes: ${error.message}`);
-  }
-
-  return (data as ClassRow[]).map(rowToClass);
+  return db
+    .all("cohorts")
+    .map(rowToClass)
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
 
+/**
+ * Deleting a class keeps its students (they become unassigned) and flags
+ * charts generated for it as stale.
+ */
 export async function deleteClass(id: string) {
-  const { supabase, userId } = await requireUser();
-
-  const { data: chartsToMark, error: chartFetchError } = await supabase
-    .from("seating_charts")
-    .select("id, stale_reasons")
-    .eq("cohort_id", id)
-    .eq("user_id", userId);
-
-  if (chartFetchError) {
-    redirect(`/dashboard?error=${encodeURIComponent(chartFetchError.message)}`);
+  const charts = db
+    .all("seating_charts")
+    .filter((chart) => chart.cohort_id === id)
+    .map((chart) => chart.id);
+  if (charts.length > 0) {
+    db.update("seating_charts", charts, (chart) => ({
+      stale: true,
+      stale_reasons: Array.from(new Set([...chart.stale_reasons, CLASS_DELETED_STALE_REASON])),
+    }));
   }
-
-  if (chartsToMark && chartsToMark.length > 0) {
-    const updates = chartsToMark.map((chart) => {
-      const reasons = Array.from(
-        new Set([
-          ...(chart.stale_reasons ?? []),
-          CLASS_DELETED_STALE_REASON,
-        ]),
-      );
-
-      return supabase
-        .from("seating_charts")
-        .update({ stale: true, stale_reasons: reasons })
-        .eq("id", chart.id)
-        .eq("user_id", userId);
-    });
-
-    const results = await Promise.all(updates);
-    const updateError = results.find((result) => result.error)?.error;
-
-    if (updateError) {
-      redirect(`/dashboard?error=${encodeURIComponent(updateError.message)}`);
-    }
+  const members = db
+    .all("students")
+    .filter((s) => s.cohort_id === id)
+    .map((s) => s.id);
+  if (members.length > 0) {
+    db.update("students", members, { cohort_id: null });
   }
-
-  const { error } = await supabase
-    .from("cohorts")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", userId);
-
-  if (error) {
-    redirect(`/dashboard?error=${encodeURIComponent(error.message)}`);
-  }
-
-  revalidatePath("/dashboard");
-  revalidatePath("/students");
-  revalidatePath("/charts");
-  revalidatePath("/charts/new");
+  db.remove("cohorts", [id]);
 }

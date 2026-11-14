@@ -1,28 +1,21 @@
+"use client";
+
+import { Suspense } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { listClasses, updateClass, deleteClass } from "@/lib/classes/actions";
-import { listStudents } from "@/lib/students/actions";
+import { updateClass, deleteClass } from "@/lib/classes/actions";
+import { useClasses, useStudents } from "@/lib/local/hooks";
+import { FlashMessages } from "@/components/local/flash-messages";
 import { ChevronLeft, Trash2, Save, Users } from "lucide-react";
 import { getTerminology } from "@/lib/utils/terminology";
 
-export const dynamic = "force-dynamic";
-
-type SearchParams = Promise<{ error?: string; success?: string }>;
-
-export default async function ClassesPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const { error: errorMsg, success: successMsg } = await searchParams;
+export default function ClassesPage() {
   const t = getTerminology();
 
-  const [classes, students] = await Promise.all([
-    listClasses(),
-    listStudents(),
-  ]);
+  const classes = useClasses();
+  const students = useStudents();
 
   const studentsByClass = students.reduce((acc, student) => {
     const classId = student.classId || "unassigned";
@@ -47,16 +40,9 @@ export default async function ClassesPage({
         </div>
       </div>
 
-      {errorMsg && (
-        <div className="mb-6 rounded-md bg-destructive/15 p-4 text-sm text-destructive">
-          {errorMsg}
-        </div>
-      )}
-      {successMsg && (
-        <div className="mb-6 rounded-md bg-green-50 p-4 text-sm text-green-800 border border-green-200">
-          {successMsg}
-        </div>
-      )}
+      <Suspense fallback={null}>
+        <FlashMessages />
+      </Suspense>
 
       <div className="grid gap-6">
         {classes.length === 0 ? (

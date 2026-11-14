@@ -42,13 +42,14 @@ Teachers can manually swap students via drag-and-drop or lock specific students 
 
 ## 5. Security & Privacy
 
-As a tool handling student data, SynDesk implements:
-- **Supabase Row Level Security (RLS):** All data is isolated per authenticated user account.
-- **PII Export Intercepts:** Confirmation dialogs warn users before downloading files containing sensitive student data.
-- **Audit Logs:** Schema includes `created_at` and `updated_at` for all primary records.
+As a tool handling student data, SynDesk keeps that data on the teacher's device:
+- **Local-first storage:** All records live in the browser's local storage. There is no server-side database, account or sync.
+- **Backup files:** The only way data leaves the browser is a backup or CSV the teacher downloads, each behind a sensitivity warning.
+- **No tracking:** No analytics, cookies or third-party requests.
+- **Audit fields:** Records keep `created_at` and `updated_at`.
 
 ## 6. Development Status
 
-- **Phase:** v1.0 Lock
-- **Focus:** Stabilization, brand consistency, and data protection.
-- **Target:** Private Beta for K-12 Educators.
+- **Phase:** v1.0 public release (local-first)
+- **Focus:** A free, no-account tool listed on Future of the Isles' Make page.
+- **Target:** K-12 and Higher Ed teachers.

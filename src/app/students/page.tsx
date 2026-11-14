@@ -1,23 +1,14 @@
-import { listStudents } from "@/lib/students/actions";
-import { listClasses } from "@/lib/classes/actions";
+"use client";
+
+import { Suspense } from "react";
+import { useClasses, useStudents } from "@/lib/local/hooks";
 import { StudentRoster } from "./student-roster";
 import { getTerminology } from "@/lib/utils/terminology";
+import { FlashMessages } from "@/components/local/flash-messages";
 
-export const dynamic = "force-dynamic";
-
-type SearchParams = Promise<{ error?: string; success?: string }>;
-
-export default async function StudentsPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const { error, success } = await searchParams;
-  const [students, classes] = await Promise.all([
-    listStudents(),
-    listClasses(),
-  ]);
-
+export default function StudentsPage() {
+  const students = useStudents();
+  const classes = useClasses();
   const t = getTerminology();
 
   return (
@@ -31,17 +22,9 @@ export default async function StudentsPage({
         </p>
       </div>
 
-      {error && (
-        <p className="mb-4 text-sm text-destructive" role="alert">
-          {error}
-        </p>
-      )}
-
-      {success && (
-        <p className="mb-4 text-sm text-emerald-700" role="status">
-          {success}
-        </p>
-      )}
+      <Suspense fallback={null}>
+        <FlashMessages />
+      </Suspense>
 
       <StudentRoster students={students} classes={classes} />
     </main>

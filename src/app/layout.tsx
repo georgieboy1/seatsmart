@@ -5,6 +5,8 @@ import { Toaster } from "sonner";
 import { TerminologyProvider } from "@/components/providers/terminology-provider";
 import Link from "next/link";
 import { AlertCircle } from "lucide-react";
+import { RouterBridge } from "@/components/providers/router-bridge";
+import { ServiceWorker } from "@/components/providers/service-worker";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,10 +28,10 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: "SynDesk",
-  description: "Classroom seating, automated.",
+  description: "Free classroom seating chart generator. Your roster never leaves your device.",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -50,6 +52,8 @@ export default async function RootLayout({
             <span>SynDesk is optimized for desktop. Some features may be limited on mobile.</span>
           </div>
         </div>
+        <RouterBridge />
+        <ServiceWorker />
         <TerminologyProvider>
           <TooltipProvider>
             <div className="flex-1 flex flex-col">
@@ -59,7 +63,12 @@ export default async function RootLayout({
         </TerminologyProvider>
         <footer className="border-t py-6 text-center text-xs text-muted-foreground bg-muted/20">
           <div className="container mx-auto flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-6">
-            <p>© 2026 SynDesk</p>
+            <p>
+              SynDesk by{" "}
+              <a href="https://futureoftheisles.org/studios/kc-studio/" className="hover:underline">KC Studio</a>
+              {" · "}
+              <a href="https://futureoftheisles.org/" className="hover:underline">Future of the Isles</a>
+            </p>
             <div className="flex gap-4">
               <Link href="/privacy" className="hover:underline">Privacy</Link>
               <Link href="/terms" className="hover:underline">Terms</Link>

@@ -1,18 +1,14 @@
-import { listLayouts, createDefaultLayout } from "@/lib/layouts/actions";
+"use client";
+
+import { Suspense } from "react";
+import { createDefaultLayout } from "@/lib/layouts/actions";
+import { useLayouts } from "@/lib/local/hooks";
 import { Button } from "@/components/ui/button";
 import { LayoutsList } from "./layouts-list";
+import { FlashMessages } from "@/components/local/flash-messages";
 
-export const dynamic = "force-dynamic";
-
-type SearchParams = Promise<{ error?: string }>;
-
-export default async function LayoutsPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const { error } = await searchParams;
-  const layouts = await listLayouts();
+export default function LayoutsPage() {
+  const layouts = useLayouts();
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-12">
@@ -32,11 +28,9 @@ export default async function LayoutsPage({
         </form>
       </div>
 
-      {error && (
-        <p className="mb-4 text-sm text-destructive" role="alert">
-          {error}
-        </p>
-      )}
+      <Suspense fallback={null}>
+        <FlashMessages />
+      </Suspense>
 
       <LayoutsList layouts={layouts} />
     </main>

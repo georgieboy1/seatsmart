@@ -3,22 +3,25 @@ import { render, screen } from "@testing-library/react";
 import Home from "./page";
 
 describe("Home page", () => {
-  it("renders the SynDesk heading", () => {
+  it("names the product and what it does", () => {
     render(<Home />);
-    expect(
-      screen.getByRole("heading", { name: /syndesk/i, level: 1 })
-    ).toBeInTheDocument();
+    expect(screen.getByText(/syndesk · free classroom seating chart generator/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/seating chart/i);
   });
 
-  it("links Get started to /signup", () => {
+  it("opens the workspace without an account", () => {
     render(<Home />);
-    const link = screen.getByRole("link", { name: /get started/i });
-    expect(link).toHaveAttribute("href", "/signup");
+    expect(screen.getByRole("link", { name: /open syndesk/i })).toHaveAttribute("href", "/dashboard");
+    expect(screen.queryByRole("link", { name: /log in|sign up|get started/i })).toBeNull();
   });
 
-  it("links Log in to /login", () => {
+  it("offers a one-click sample class", () => {
     render(<Home />);
-    const link = screen.getByRole("link", { name: /log in/i });
-    expect(link).toHaveAttribute("href", "/login");
+    expect(screen.getByRole("button", { name: /sample class/i })).toBeInTheDocument();
+  });
+
+  it("states that student data stays on the device", () => {
+    render(<Home />);
+    expect(screen.getByText(/student data stays on this device/i)).toBeInTheDocument();
   });
 });

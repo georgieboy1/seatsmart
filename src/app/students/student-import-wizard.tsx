@@ -335,7 +335,7 @@ export function StudentImportWizard({ onClose }: { onClose: () => void }) {
             )}
 
             {step === "preview" && (
-              <form action={importStudentsCsv}>
+              <form action={async (formData: FormData) => { if (await importStudentsCsv(formData)) onClose(); }}>
                 <input type="hidden" name="json" value={JSON.stringify(mappedData.filter(d => d.errors.length === 0))} />
                 <Button type="submit" disabled={!isValid || mappedData.length === 0} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
                   <CheckCircle2 className="size-4" />

@@ -1,13 +1,15 @@
+"use client";
+
 import Link from "next/link";
-import { listCharts } from "@/lib/charts/actions";
+import { chartHref } from "@/lib/charts/actions";
+import { useCharts, useHydrated } from "@/lib/local/hooks";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
-export const dynamic = "force-dynamic";
-
-export default async function ChartsPage() {
-  const charts = await listCharts();
+export default function ChartsPage() {
+  const charts = useCharts();
+  const hydrated = useHydrated();
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-12">
@@ -28,7 +30,7 @@ export default async function ChartsPage() {
         </Button>
       </div>
 
-      {charts.length === 0 ? (
+      {!hydrated ? null : charts.length === 0 ? (
         <div className="rounded-lg border border-dashed p-12 text-center">
           <p className="text-base font-medium">No charts yet</p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -38,7 +40,7 @@ export default async function ChartsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {charts.map((chart) => (
-            <Link key={chart.id} href={`/charts/${chart.id}`}>
+            <Link key={chart.id} href={chartHref(chart.id)}>
               <Card className="hover:bg-accent/50 transition-colors">
                 <CardHeader>
                   <CardTitle className="text-base">{chart.name}</CardTitle>

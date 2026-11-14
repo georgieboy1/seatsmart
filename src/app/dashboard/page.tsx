@@ -1,74 +1,44 @@
+"use client";
+
+import { Suspense } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { listLayouts } from "@/lib/layouts/actions";
-import { listStudents } from "@/lib/students/actions";
-import { listCharts } from "@/lib/charts/actions";
-import { listClasses, createClass, deleteClass } from "@/lib/classes/actions";
-import { logout } from "./actions";
-import { LayoutGrid, Users, ClipboardList, Plus, LogOut, GraduationCap, X } from "lucide-react";
+import { createClass, deleteClass } from "@/lib/classes/actions";
+import { chartHref } from "@/lib/charts/actions";
+import { useCharts, useClasses, useLayouts, useStudents } from "@/lib/local/hooks";
+import { LayoutGrid, Users, ClipboardList, Plus, GraduationCap, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { getTerminology } from "@/lib/utils/terminology";
+import { FlashMessages } from "@/components/local/flash-messages";
+import { BackupPanel } from "@/components/local/backup-panel";
+import { TrySampleButton } from "@/components/local/try-sample-button";
 
-export const dynamic = "force-dynamic";
-
-type SearchParams = Promise<{ error?: string; success?: string }>;
-
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const { error: errorMsg, success: successMsg } = await searchParams;
+export default function DashboardPage() {
   const t = getTerminology();
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const [layouts, students, charts, classes] = await Promise.all([
-    listLayouts(),
-    listStudents(),
-    listCharts(),
-    listClasses(),
-  ]);
+  const layouts = useLayouts();
+  const students = useStudents();
+  const charts = useCharts();
+  const classes = useClasses();
 
   const canGenerate = layouts.length > 0 && students.length >= 2;
+  const isEmpty = layouts.length === 0 && students.length === 0 && classes.length === 0;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-12">
-      {errorMsg && (
-        <div className="mb-6 rounded-md bg-destructive/15 p-4 text-sm text-destructive">
-          {errorMsg}
-        </div>
-      )}
-      {successMsg && (
-        <div className="mb-6 rounded-md bg-green-50 p-4 text-sm text-green-800 border border-green-200">
-          {successMsg}
-        </div>
-      )}
-      <div className="mb-8 flex items-center justify-between">
+      <Suspense fallback={null}>
+        <FlashMessages />
+      </Suspense>
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-semibold tracking-tight">
-            Welcome back
+            Your workspace
           </h1>
           <p className="text-sm text-muted-foreground">
-            {user.email}
+            Saved in this browser only. No account needed.
           </p>
         </div>
-        <form action={logout}>
-          <Button type="submit" variant="ghost" size="sm">
-            <LogOut className="mr-2 h-4 w-4" />
-            Log out
-          </Button>
-        </form>
+        {isEmpty && <TrySampleButton size="sm" label="Load a sample class" />}
       </div>
 
       <div className="mb-12 grid gap-6 sm:grid-cols-3">
@@ -118,7 +88,7 @@ export default async function DashboardPage({
         </Link>
       </div>
 
-      <div className="mb-12 grid gap-6 sm:grid-cols-2">
+      <div className="mb-12 grid gap-6 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">{t.groups}</CardTitle>
@@ -178,6 +148,8 @@ export default async function DashboardPage({
             </Link>
           </Button>
         </div>
+
+        <BackupPanel />
       </div>
 
       {charts.length > 0 && (
@@ -190,7 +162,7 @@ export default async function DashboardPage({
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {charts.slice(0, 3).map((chart) => (
-              <Link key={chart.id} href={`/charts/${chart.id}`}>
+              <Link key={chart.id} href={chartHref(chart.id)}>
                 <Card className="hover:bg-accent/50 transition-colors">
                   <CardHeader>
                     <CardTitle className="text-base">{chart.name}</CardTitle>

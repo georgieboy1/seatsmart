@@ -1,60 +1,72 @@
+"use client";
+
+import { Suspense } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { listStudents } from "@/lib/students/actions";
-import { listClasses } from "@/lib/classes/actions";
+import { useSearchParams } from "next/navigation";
+import { useClasses, useHydrated, useLayouts, useStudents } from "@/lib/local/hooks";
+import { FlashMessages } from "@/components/local/flash-messages";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, Users } from "lucide-react";
 
 import { SeatingChartView } from "@/components/charts/seating-chart-view";
-import { getLayout, listLayouts } from "@/lib/layouts/actions";
+function Blocked({ message, href, cta }: { message: string; href: string; cta: string }) {
+  return (
+    <main className="mx-auto max-w-4xl px-4 py-12">
+      <div className="border-[1.5px] border-dashed p-12 text-center">
+        <p className="text-base font-medium">{message}</p>
+        <Button asChild className="mt-4">
+          <Link href={href}>{cta}</Link>
+        </Button>
+      </div>
+    </main>
+  );
+}
 
-export const dynamic = "force-dynamic";
+function NewChart() {
+  const params = useSearchParams();
+  const layoutId = params.get("layoutId") ?? undefined;
+  const classIdParam = params.get("classId");
+  const classId = classIdParam === null ? undefined : classIdParam;
+  const hydrated = useHydrated();
+  const layouts = useLayouts();
+  const classes = useClasses();
+  const students = useStudents();
 
-type SearchParams = Promise<{ layoutId?: string; classId?: string }>;
-
-export default async function NewChartPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const { layoutId, classId } = await searchParams;
-  const [layouts, classes] = await Promise.all([
-    listLayouts(),
-    listClasses(),
-  ]);
+  if (!hydrated) return null;
 
   if (layouts.length === 0) {
-    redirect("/dashboard?error=Create+a+layout+first");
+    return <Blocked message="Draw your classroom first." href="/layouts" cta="Create a layout" />;
   }
 
-  if (classes.length === 0) {
-    redirect("/dashboard?error=Create+a+class+first");
+  if (students.length < 2) {
+    return <Blocked message="Add at least two students first." href="/students" cta="Add students" />;
   }
 
   if (layoutId && classId !== undefined) {
-    const [selectedLayout, students, allClasss] = await Promise.all([
-      getLayout(layoutId),
-      listStudents(), // Get all students so we can filter in the view
-      listClasses(),
-    ]);
+    const selectedLayout = layouts.find((l) => l.id === layoutId);
 
     if (!selectedLayout) {
-      redirect("/charts/new?error=Layout+not+found");
+      return <Blocked message="That layout wasn't found." href="/charts/new" cta="Pick a layout" />;
     }
 
-    // Still check if the specific cohort has enough students for initial generation
-    const cohortStudents = students.filter(s => s.classId === (classId || null));
+    const cohortStudents = students.filter((s) => s.classId === (classId || null));
     if (cohortStudents.length < 2 && classId !== "") {
-      redirect(`/charts/new?layoutId=${layoutId}&error=Need+at+least+2+students+in+this+class`);
+      return (
+        <Blocked
+          message="This class needs at least 2 students."
+          href={`/charts/new?layoutId=${layoutId}`}
+          cta="Pick another class"
+        />
+      );
     }
-    
+
     return (
       <main className="mx-auto max-w-7xl px-4 py-8">
         <SeatingChartView 
           layout={selectedLayout} 
           students={students} 
-          classes={allClasss}
+          classes={classes}
           classId={classId || undefined}
         />
       </main>
@@ -136,5 +148,14 @@ export default async function NewChartPage({
         </Button>
       </div>
     </main>
+  );
+}
+
+export default function NewChartPage() {
+  return (
+    <Suspense fallback={null}>
+      <FlashMessages />
+      <NewChart />
+    </Suspense>
   );
 }

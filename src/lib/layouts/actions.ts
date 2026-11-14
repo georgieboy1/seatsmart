@@ -1,22 +1,14 @@
-"use server";
-
-import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import * as db from "@/lib/local/store";
+import { go, withMessage } from "@/lib/local/nav";
 import { layoutCreateSchema, layoutUpdateSchema } from "./schemas";
-import { rowToLayout, layoutToInsert, type LayoutRow } from "./db";
+import { rowToLayout, layoutToInsert } from "./db";
 import { createTraditionalGrid } from "./grid";
 import type { ClassroomLayout } from "@/lib/types/layout";
 
-async function requireUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    redirect("/login");
-  }
-  return { supabase, userId: user.id };
+const LAYOUT_UPDATED = "layout was updated";
+
+export function layoutHref(id: string) {
+  return `/layouts/edit?id=${encodeURIComponent(id)}`;
 }
 
 function parseFormData(formData: FormData) {
@@ -49,254 +41,127 @@ function parseFormData(formData: FormData) {
 }
 
 export async function createDefaultLayout() {
-  const { supabase, userId } = await requireUser();
-
-  const grid = createTraditionalGrid(5, 6);
-  const { data, error } = await supabase
-    .from("layouts")
-    .insert(
-      layoutToInsert(
-        {
-          name: "Untitled layout",
-          type: "traditional",
-          rows: 5,
-          columns: 6,
-          numGroups: null,
-          studentsPerGroup: null,
-          grid,
-        },
-        userId,
-      ),
-    )
-    .select("id")
-    .single();
-
-  if (error) {
-    redirect(`/layouts?error=${encodeURIComponent(error.message)}`);
-  }
-
-  revalidatePath("/layouts");
-  redirect(`/layouts/${data!.id}`);
+  const [row] = db.insert("layouts", [
+    layoutToInsert(
+      {
+        name: "Untitled layout",
+        type: "traditional",
+        rows: 5,
+        columns: 6,
+        numGroups: null,
+        studentsPerGroup: null,
+        grid: createTraditionalGrid(5, 6),
+      },
+      db.LOCAL_USER_ID,
+    ),
+  ]);
+  go(layoutHref(row.id));
 }
 
 export async function createLayout(formData: FormData) {
   const result = layoutCreateSchema.safeParse(parseFormData(formData));
-
   if (!result.success) {
-    const message = result.error.issues[0]?.message ?? "Invalid layout";
-    redirect(`/layouts/new?error=${encodeURIComponent(message)}`);
+    go(withMessage("/layouts", "error", result.error.issues[0]?.message ?? "Invalid layout"));
+    return;
   }
-
-  const { supabase, userId } = await requireUser();
-
-  const { data, error } = await supabase
-    .from("layouts")
-    .insert(layoutToInsert(result.data, userId))
-    .select("id")
-    .single();
-
-  if (error) {
-    redirect(`/layouts/new?error=${encodeURIComponent(error.message)}`);
-  }
-
-  revalidatePath("/layouts");
-  redirect(`/layouts/${data.id}`);
+  const [row] = db.insert("layouts", [layoutToInsert(result.data, db.LOCAL_USER_ID)]);
+  go(layoutHref(row.id));
 }
 
 export async function listLayouts(): Promise<ClassroomLayout[]> {
-  const { supabase, userId } = await requireUser();
-
-  const { data, error } = await supabase
-    .from("layouts")
-    .select("*")
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false });
-
-  if (error) {
-    throw new Error(`Failed to load layouts: ${error.message}`);
-  }
-
-  return (data as LayoutRow[]).map(rowToLayout);
+  return db
+    .all("layouts")
+    .map(rowToLayout)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 export async function getLayout(id: string): Promise<ClassroomLayout | null> {
-  const { supabase, userId } = await requireUser();
-
-  const { data, error } = await supabase
-    .from("layouts")
-    .select("*")
-    .eq("id", id)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Failed to load layout: ${error.message}`);
-  }
-
-  return data ? rowToLayout(data as LayoutRow) : null;
+  const row = db.find("layouts", id);
+  return row ? rowToLayout(row) : null;
 }
 
 export async function updateLayout(id: string, formData: FormData) {
   const result = layoutUpdateSchema.safeParse(parseFormData(formData));
-
   if (!result.success) {
-    const message = result.error.issues[0]?.message ?? "Invalid layout";
-    redirect(`/layouts/${id}?error=${encodeURIComponent(message)}`);
+    go(withMessage(layoutHref(id), "error", result.error.issues[0]?.message ?? "Invalid layout"));
+    return;
   }
+  const l = result.data;
+  db.update("layouts", [id], {
+    name: l.name,
+    type: l.type,
+    rows: l.rows,
+    columns: l.columns,
+    num_groups: l.numGroups,
+    students_per_group: l.studentsPerGroup,
+    grid: l.grid,
+  });
 
-  const { supabase, userId } = await requireUser();
-
-  const { error } = await supabase
-    .from("layouts")
-    .update({
-      name: result.data.name,
-      type: result.data.type,
-      rows: result.data.rows,
-      columns: result.data.columns,
-      num_groups: result.data.numGroups,
-      students_per_group: result.data.studentsPerGroup,
-      grid: result.data.grid,
-    })
-    .eq("id", id)
-    .eq("user_id", userId);
-
-  if (error) {
-    redirect(`/layouts/${id}?error=${encodeURIComponent(error.message)}`);
+  const charts = db
+    .all("seating_charts")
+    .filter((chart) => chart.layout_id === id)
+    .map((chart) => chart.id);
+  if (charts.length > 0) {
+    db.update("seating_charts", charts, (chart) => ({
+      stale: true,
+      stale_reasons: Array.from(new Set([...chart.stale_reasons, LAYOUT_UPDATED])),
+    }));
   }
-
-  // Mark all charts using this layout as stale
-  // Note: For v1, we fetch and update individually to keep it simple.
-  const { data: chartsToMark } = await supabase
-    .from("seating_charts")
-    .select("id, stale_reasons")
-    .eq("layout_id", id);
-
-  if (chartsToMark && chartsToMark.length > 0) {
-    await Promise.all(
-      chartsToMark.map((chart) => {
-        const reasons = Array.from(
-          new Set([...chart.stale_reasons, "layout was updated"]),
-        );
-        return supabase
-          .from("seating_charts")
-          .update({ stale: true, stale_reasons: reasons })
-          .eq("id", chart.id);
-      }),
-    );
-  }
-
-  revalidatePath("/layouts");
-  revalidatePath(`/layouts/${id}`);
-  revalidatePath("/charts");
 }
 
 export async function duplicateLayout(id: string) {
-  const { supabase, userId } = await requireUser();
-
-  const { data: source, error: fetchError } = await supabase
-    .from("layouts")
-    .select("*")
-    .eq("id", id)
-    .eq("user_id", userId)
-    .single();
-
-  if (fetchError || !source) {
-    redirect("/layouts?error=Source+layout+not+found");
+  const source = db.find("layouts", id);
+  if (!source) {
+    go(withMessage("/layouts", "error", "Source layout not found"));
+    return;
   }
-
-  const sourceLayout = rowToLayout(source as LayoutRow);
-
-  const { data: inserted, error: insertError } = await supabase
-    .from("layouts")
-    .insert(
-      layoutToInsert(
-        {
-          name: `${sourceLayout.name} (copy)`,
-          type: sourceLayout.type,
-          rows: sourceLayout.rows,
-          columns: sourceLayout.columns,
-          numGroups: sourceLayout.numGroups,
-          studentsPerGroup: sourceLayout.studentsPerGroup,
-          grid: sourceLayout.grid,
-        },
-        userId,
-      ),
-    )
-    .select("id")
-    .single();
-
-  if (insertError) {
-    redirect(`/layouts?error=${encodeURIComponent(insertError.message)}`);
-  }
-
-  revalidatePath("/layouts");
-  redirect(`/layouts/${inserted!.id}`);
+  const layout = rowToLayout(source);
+  const [row] = db.insert("layouts", [
+    layoutToInsert(
+      {
+        name: `${layout.name} (copy)`,
+        type: layout.type,
+        rows: layout.rows,
+        columns: layout.columns,
+        numGroups: layout.numGroups,
+        studentsPerGroup: layout.studentsPerGroup,
+        grid: layout.grid,
+      },
+      db.LOCAL_USER_ID,
+    ),
+  ]);
+  go(layoutHref(row.id));
 }
 
 /**
- * Lightweight rename for layouts. Used by the kebab menu on
- * /layouts cards (which doesn't have the full builder context).
- * Does not touch the grid or trigger chart-stale flagging — only
- * the human-readable name changes.
+ * Lightweight rename used by the kebab menu on /layouts cards. Only the
+ * name changes, so charts are not flagged stale.
  */
 export async function renameLayout(id: string, formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) {
-    redirect(`/layouts?error=Name+is+required`);
+    go(withMessage("/layouts", "error", "Name is required"));
+    return;
   }
   if (name.length > 100) {
-    redirect(`/layouts?error=Name+is+too+long`);
+    go(withMessage("/layouts", "error", "Name is too long"));
+    return;
   }
-
-  const { supabase, userId } = await requireUser();
-
-  const { error } = await supabase
-    .from("layouts")
-    .update({ name })
-    .eq("id", id)
-    .eq("user_id", userId);
-
-  if (error) {
-    redirect(`/layouts?error=${encodeURIComponent(error.message)}`);
-  }
-
-  revalidatePath("/layouts");
-  revalidatePath(`/layouts/${id}`);
+  db.update("layouts", [id], { name });
 }
 
 export async function deleteLayout(id: string) {
-  const { supabase, userId } = await requireUser();
-
-  // Check if layout is in use
-  const { count, error: countError } = await supabase
-    .from("seating_charts")
-    .select("*", { count: "exact", head: true })
-    .eq("layout_id", id);
-
-  if (countError) {
-    redirect(`/layouts?error=${encodeURIComponent(countError.message)}`);
-  }
-
-  if (count && count > 0) {
-    redirect(
-      `/layouts?error=${encodeURIComponent(
-        `This layout is used by ${count} chart${
-          count === 1 ? "" : "s"
-        }. Delete or duplicate them first.`,
-      )}`,
+  const count = db.all("seating_charts").filter((chart) => chart.layout_id === id).length;
+  if (count > 0) {
+    go(
+      withMessage(
+        "/layouts",
+        "error",
+        `This layout is used by ${count} chart${count === 1 ? "" : "s"}. Delete or duplicate them first.`,
+      ),
     );
+    return;
   }
-
-  const { error } = await supabase
-    .from("layouts")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", userId);
-
-  if (error) {
-    redirect(`/layouts?error=${encodeURIComponent(error.message)}`);
-  }
-
-  revalidatePath("/layouts");
-  redirect("/layouts");
+  db.remove("layouts", [id]);
+  go("/layouts");
 }

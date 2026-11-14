@@ -126,7 +126,10 @@ export function StudentFormModal({
 }: StudentFormModalProps) {
   const t = useTerminology();
   const isEditing = Boolean(student);
-  const action = student ? updateStudent.bind(null, student.id) : createStudent;
+  const save = student ? updateStudent.bind(null, student.id) : createStudent;
+  const action = async (formData: FormData) => {
+    if (await save(formData)) onClose();
+  };
   const initialTogether = student?.togetherIds ?? [];
   const initialSeparate = (student?.separateIds ?? []).filter(
     (id) => !initialTogether.includes(id),

@@ -8,7 +8,7 @@ import type { SeatingChart } from "@/lib/types/chart";
 import { generateSeating } from "@/lib/seating/generate";
 import type { GenerationOptions, SeatingIssue, SeatExplanation } from "@/lib/seating/types";
 import type { Class } from "@/lib/types/class";
-import { createChart, updateChart } from "@/lib/charts/actions";
+import { createChart, updateChart, chartHref } from "@/lib/charts/actions";
 import { listStudents } from "@/lib/students/actions";
 import { exportToCsv, exportToJson, exportToPng } from "@/lib/charts/export";
 import { SeatingChartGrid } from "./seating-chart-grid";
@@ -202,7 +202,7 @@ export function SeatingChartView({
         setIsStale(false);
       } else {
         const id = await createChart(chartData);
-        router.push(`/charts/${id}`);
+        router.push(chartHref(id));
       }
     } catch (error) {
       console.error("Failed to save chart:", error);

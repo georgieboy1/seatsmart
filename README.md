@@ -2,33 +2,21 @@
 
 The ultimate classroom seating tool for K-12 and Higher Ed. Model your room once, enter your class roster with accommodations, and get an optimized seating chart in seconds — with intuitive drag-and-drop fine-tuning.
 
-> **Status:** v1.0 Private Beta Candidate. Focused exclusively on classroom management and student support.
+> **Status:** v1.0, free public release by KC Studio (a Future of the Isles studio).
+> No accounts and no server: everything a teacher enters stays in their browser.
 
 ## 🚀 Quick Start
 
-1. **Clone the repo**
-   ```bash
-   git clone https://github.com/YOUR-USERNAME/syndesk.git
-   cd syndesk
-   ```
+```bash
+npm install
+npm run dev        # http://localhost:3000
+npm test           # unit tests
+npm run e2e        # browser test: home → sample class → saved chart
+npm run build      # static site in out/
+npm run deploy     # publish to syndesk.futureoftheisles.org (gh-pages)
+```
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Configure environment**
-   - Create a project at [supabase.com](https://supabase.com).
-   - Copy `.env.example` to `.env.local`.
-   - Fill in `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-
-4. **Run migrations**
-   Apply the SQL files in `supabase/migrations/` to your Supabase project in numerical order. For the full private-beta verification path, see [`docs/PRIVATE_BETA_CHECKLIST.md`](docs/PRIVATE_BETA_CHECKLIST.md).
-
-5. **Start developing**
-   ```bash
-   npm run dev
-   ```
+There is nothing to configure: no database, no environment variables, no API keys.
 
 ## 🛠 Features
 
@@ -43,7 +31,6 @@ The ultimate classroom seating tool for K-12 and Higher Ed. Model your room once
 ```text
 syndesk/
 ├── docs/                   # Product Specification
-├── supabase/               # SQL migrations & DB config
 ├── e2e/                    # Playwright E2E specs
 └── src/
     ├── app/                # Next.js App Router (Students, Classes, Charts)
@@ -52,22 +39,17 @@ syndesk/
         ├── students/       # Student logic & Import Wizard
         ├── classes/        # Class management logic
         ├── seating/        # The Seating Algorithm
-        └── supabase/       # Client/Server DB utilities
+        └── local/          # On-device store, hooks, backups, sample class
 ```
 
 ## 🛡️ Privacy & Security
 
-SynDesk is built with student data privacy at the core:
+SynDesk is built so student data never has to leave the teacher's device:
+- **On-device only:** Classes, students, layouts and charts are saved in the browser's local storage. There is no server-side database and no account.
+- **Backups:** Teachers move data between devices with a downloadable backup file, which shows a sensitive-data warning first.
 - **PII Protection:** Native warnings before any data export.
-- **Data Isolation:** Row Level Security (RLS) ensures only you can access your student rosters and layouts.
-- **Zero Tracking:** No third-party analytics or tracking pixels are used.
-
-## Private Beta
-
-Before inviting teachers, run the checklist in
-[`docs/PRIVATE_BETA_CHECKLIST.md`](docs/PRIVATE_BETA_CHECKLIST.md). It covers the
-fresh Supabase migration test, authenticated E2E credentials, desktop
-walkthrough, and feedback intake.
+- **Zero Tracking:** No analytics, ads, cookies or third-party requests.
+- **Offline:** A service worker keeps the app working without a connection.
 
 ## License
 

@@ -9,6 +9,7 @@ import { StudentImportWizard } from "./student-import-wizard";
 import { StudentFormModal } from "./student-form-modal";
 import { StudentList } from "./student-list";
 import { useTerminology } from "@/components/providers/terminology-provider";
+import { serializeStudentsCsv } from "@/lib/students/csv";
 
 export function StudentRoster({ 
   students, 
@@ -61,7 +62,13 @@ export function StudentRoster({
           <Button
             onClick={() => {
               if (window.confirm("This export may contain sensitive student accommodation or health information. Store and share it carefully.")) {
-                window.location.href = "/students/export";
+                const blob = new Blob([serializeStudentsCsv(students)], { type: "text/csv;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "syndesk-students.csv";
+                a.click();
+                URL.revokeObjectURL(url);
               }
             }}
             type="button"

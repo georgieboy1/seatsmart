@@ -1,24 +1,10 @@
-"use server";
-
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import * as db from "@/lib/local/store";
+import { go, withMessage } from "@/lib/local/nav";
 import type { Student } from "@/lib/types/student";
-import { rowToStudent, studentToInsert, type StudentRow } from "./db";
+import { rowToStudent, studentToInsert } from "./db";
 import { studentCreateSchema, studentUpdateSchema } from "./schemas";
 
-async function requireUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  return { supabase, userId: user.id };
-}
+const STUDENT_REMOVED = "student was removed";
 
 function formArray(formData: FormData, key: string): string[] {
   return formData
@@ -46,263 +32,145 @@ function parseFormData(formData: FormData) {
   };
 }
 
-export async function createStudent(formData: FormData) {
-  const result = studentCreateSchema.safeParse(parseFormData(formData));
-
-  if (!result.success) {
-    const message = result.error.issues[0]?.message ?? "Invalid student";
-    redirect(`/students?error=${encodeURIComponent(message)}`);
-  }
-
-  const { supabase, userId } = await requireUser();
-
-  const { error } = await supabase
-    .from("students")
-    .insert(studentToInsert(result.data, userId));
-
-  if (error) {
-    redirect(`/students?error=${encodeURIComponent(error.message)}`);
-  }
-
-  revalidatePath("/students");
-  redirect("/students");
+/** Charts keep their assignments; a removed student's seat just shows empty. */
+function markChartsUsingStudents(ids: string[]) {
+  const affected = db
+    .all("seating_charts")
+    .filter((chart) => Object.values(chart.assignments).some((sid) => ids.includes(sid)))
+    .map((chart) => chart.id);
+  if (affected.length === 0) return;
+  db.update("seating_charts", affected, (chart) => ({
+    stale: true,
+    stale_reasons: Array.from(new Set([...chart.stale_reasons, STUDENT_REMOVED])),
+  }));
 }
 
-export async function importStudentsCsv(formData: FormData) {
-  const json = formData.get("json");
+/** Returns true when the student was saved, false when validation failed. */
+export async function createStudent(formData: FormData): Promise<boolean> {
+  const result = studentCreateSchema.safeParse(parseFormData(formData));
+  if (!result.success) {
+    go(withMessage("/students", "error", result.error.issues[0]?.message ?? "Invalid student"));
+    return false;
+  }
+  db.insert("students", [studentToInsert(result.data, db.LOCAL_USER_ID)]);
+  go("/students");
+  return true;
+}
 
+/** Returns true when the students were imported. */
+export async function importStudentsCsv(formData: FormData): Promise<boolean> {
+  const json = formData.get("json");
   if (!json || typeof json !== "string") {
-    redirect("/students?error=No+data+received+from+import+wizard");
+    go(withMessage("/students", "error", "No data received from import wizard"));
+    return false;
   }
 
-  let rawStudents;
+  let rawStudents: unknown;
   try {
     rawStudents = JSON.parse(json);
   } catch {
-    redirect("/students?error=Invalid+import+payload");
+    go(withMessage("/students", "error", "Invalid import payload"));
+    return false;
   }
 
   if (!Array.isArray(rawStudents) || rawStudents.length === 0) {
-    redirect("/students?error=No+students+found+in+import+payload");
+    go(withMessage("/students", "error", "No students found in import payload"));
+    return false;
   }
 
-  // Validate each student
-  const validatedStudents = [];
+  const validated = [];
   for (const raw of rawStudents) {
     const result = studentCreateSchema.safeParse(raw);
     if (!result.success) {
       const message = result.error.issues[0]?.message ?? "Invalid student data";
-      redirect(`/students?error=${encodeURIComponent(`Row "${raw.name || "Unknown"}": ${message}`)}`);
+      const name = (raw as { name?: string })?.name || "Unknown";
+      go(withMessage("/students", "error", `Row "${name}": ${message}`));
+      return false;
     }
-    validatedStudents.push(result.data);
+    validated.push(result.data);
   }
 
-  const { supabase, userId } = await requireUser();
-
-  const { error } = await supabase
-    .from("students")
-    .insert(validatedStudents.map((student) => studentToInsert(student, userId)));
-
-  if (error) {
-    redirect(`/students?error=${encodeURIComponent(error.message)}`);
-  }
-
-  revalidatePath("/students");
-  redirect(
-    `/students?success=${encodeURIComponent(
-      `Imported ${validatedStudents.length} student${validatedStudents.length === 1 ? "" : "s"}`,
-    )}`,
+  db.insert(
+    "students",
+    validated.map((student) => studentToInsert(student, db.LOCAL_USER_ID)),
   );
+  go(
+    withMessage(
+      "/students",
+      "success",
+      `Imported ${validated.length} student${validated.length === 1 ? "" : "s"}`,
+    ),
+  );
+  return true;
 }
 
 export async function listStudents(classId?: string): Promise<Student[]> {
-  const { supabase, userId } = await requireUser();
-
-  let query = supabase
-    .from("students")
-    .select("*")
-    .eq("user_id", userId);
-
-  if (classId) {
-    query = query.eq("cohort_id", classId);
-  }
-
-  const { data, error } = await query.order("name", { ascending: true });
-
-  if (error) {
-    throw new Error(`Failed to load students: ${error.message}`);
-  }
-
-  return (data as StudentRow[]).map(rowToStudent);
+  return db
+    .all("students")
+    .filter((row) => !classId || row.cohort_id === classId)
+    .map(rowToStudent)
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
 
 export async function getStudent(id: string): Promise<Student | null> {
-  const { supabase, userId } = await requireUser();
-
-  const { data, error } = await supabase
-    .from("students")
-    .select("*")
-    .eq("id", id)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Failed to load student: ${error.message}`);
-  }
-
-  return data ? rowToStudent(data as StudentRow) : null;
+  const row = db.find("students", id);
+  return row ? rowToStudent(row) : null;
 }
 
-export async function updateStudent(id: string, formData: FormData) {
+/** Returns true when the student was saved, false when validation failed. */
+export async function updateStudent(id: string, formData: FormData): Promise<boolean> {
   const result = studentUpdateSchema.safeParse(parseFormData(formData));
-
   if (!result.success) {
-    const message = result.error.issues[0]?.message ?? "Invalid student";
-    redirect(`/students?error=${encodeURIComponent(message)}`);
+    go(withMessage("/students", "error", result.error.issues[0]?.message ?? "Invalid student"));
+    return false;
   }
-
-  const { supabase, userId } = await requireUser();
-
-  const { error } = await supabase
-    .from("students")
-    .update({
-      name: result.data.name,
-      cohort_id: result.data.classId,
-      external_id: result.data.externalId,
-      age: result.data.age,
-      family_name: result.data.familyName,
-      allergies: result.data.allergies,
-      health_flags: result.data.healthFlags,
-      prosocial_traits: result.data.prosocialTraits,
-      antisocial_traits: result.data.antisocialTraits,
-      constraints: result.data.constraints,
-      together_ids: result.data.togetherIds,
-      separate_ids: result.data.separateIds,
-      notes: result.data.notes,
-    })
-    .eq("id", id)
-    .eq("user_id", userId);
-
-  if (error) {
-    redirect(`/students?error=${encodeURIComponent(error.message)}`);
-  }
-
-  revalidatePath("/students");
+  const s = result.data;
+  db.update("students", [id], {
+    name: s.name,
+    cohort_id: s.classId ?? null,
+    external_id: s.externalId ?? null,
+    age: s.age ?? null,
+    family_name: s.familyName ?? null,
+    allergies: s.allergies,
+    health_flags: s.healthFlags,
+    prosocial_traits: s.prosocialTraits,
+    antisocial_traits: s.antisocialTraits,
+    constraints: s.constraints,
+    together_ids: s.togetherIds,
+    separate_ids: s.separateIds,
+    notes: s.notes,
+  });
+  return true;
 }
 
 export async function assignStudentsToClass(studentIds: string[], classId: string | null) {
-  const { supabase, userId } = await requireUser();
-
-  const { error } = await supabase
-    .from("students")
-    .update({ cohort_id: classId })
-    .in("id", studentIds)
-    .eq("user_id", userId);
-
-  if (error) {
-    throw new Error(`Failed to update students: ${error.message}`);
-  }
-
-  revalidatePath("/students");
+  db.update("students", studentIds, { cohort_id: classId });
 }
 
 export async function deleteStudent(id: string) {
-  const { supabase, userId } = await requireUser();
-
-  const { data: allCharts } = await supabase
-    .from("seating_charts")
-    .select("id, name, assignments, stale_reasons")
-    .eq("user_id", userId);
-
-  if (allCharts) {
-    const affected = allCharts.filter((chart) =>
-      Object.values(chart.assignments as Record<string, string>).includes(id),
-    );
-
-    if (affected.length > 0) {
-      await Promise.all(
-        affected.map((chart) => {
-          const reasons = Array.from(
-            new Set([...chart.stale_reasons, "student was removed"]),
-          );
-          return supabase
-            .from("seating_charts")
-            .update({
-              stale: true,
-              stale_reasons: reasons,
-            })
-            .eq("id", chart.id);
-        }),
-      );
-    }
-  }
-
-  const { error } = await supabase
-    .from("students")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", userId);
-
-  if (error) {
-    redirect(`/students?error=${encodeURIComponent(error.message)}`);
-  }
-
-  revalidatePath("/students");
-  revalidatePath("/charts");
-  redirect("/students");
+  await deleteStudents([id]);
+  go("/students");
 }
 
 /**
- * Bulk-delete multiple students in one round-trip. Used by the
- * students table's selection-toolbar "Delete Selected" action.
- *
- * Stale-flagging behavior matches per-student delete: any
- * seating_chart whose assignments map references one of these IDs
- * gets stale=true with reason "student was removed". Per CLAUDE.md
- * we do NOT mutate the chart's assignments — the seat becomes
- * orphaned, the UI renders it empty, the user regenerates when ready.
+ * Bulk-delete. Any chart that seats one of these students is flagged stale
+ * ("student was removed") but keeps its assignments, so the seat renders
+ * empty until the teacher regenerates.
  */
 export async function deleteStudents(ids: string[]) {
   if (ids.length === 0) return;
-  const { supabase, userId } = await requireUser();
-
-  const { data: allCharts } = await supabase
-    .from("seating_charts")
-    .select("id, assignments, stale_reasons")
-    .eq("user_id", userId);
-
-  if (allCharts) {
-    const affected = allCharts.filter((chart) => {
-      const placed = Object.values(chart.assignments as Record<string, string>);
-      return ids.some((id) => placed.includes(id));
-    });
-
-    if (affected.length > 0) {
-      await Promise.all(
-        affected.map((chart) => {
-          const reasons = Array.from(
-            new Set([...chart.stale_reasons, "student was removed"]),
-          );
-          return supabase
-            .from("seating_charts")
-            .update({ stale: true, stale_reasons: reasons })
-            .eq("id", chart.id);
-        }),
-      );
-    }
+  markChartsUsingStudents(ids);
+  db.remove("students", ids);
+  // Drop dangling peer-support / avoid-pairing references to the removed students.
+  const removed = new Set(ids);
+  const referencing = db
+    .all("students")
+    .filter((s) => s.together_ids.some((x) => removed.has(x)) || s.separate_ids.some((x) => removed.has(x)))
+    .map((s) => s.id);
+  if (referencing.length > 0) {
+    db.update("students", referencing, (s) => ({
+      together_ids: s.together_ids.filter((x) => !removed.has(x)),
+      separate_ids: s.separate_ids.filter((x) => !removed.has(x)),
+    }));
   }
-
-  const { error } = await supabase
-    .from("students")
-    .delete()
-    .in("id", ids)
-    .eq("user_id", userId);
-
-  if (error) {
-    throw new Error(`Failed to delete students: ${error.message}`);
-  }
-
-  revalidatePath("/students");
-  revalidatePath("/charts");
 }
-

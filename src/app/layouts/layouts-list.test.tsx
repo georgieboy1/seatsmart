@@ -39,10 +39,10 @@ describe("LayoutsList", () => {
     );
     expect(
       screen.getByRole("link", { name: /room a/i }),
-    ).toHaveAttribute("href", "/layouts/a");
+    ).toHaveAttribute("href", "/layouts/edit?id=a");
     expect(
       screen.getByRole("link", { name: /room b/i }),
-    ).toHaveAttribute("href", "/layouts/b");
+    ).toHaveAttribute("href", "/layouts/edit?id=b");
   });
 
   it("shows traditional dimensions in the subtitle", () => {
