@@ -133,6 +133,7 @@ export function SeatingChartView({
   }, [students, layout, options, lockedSeats]);
 
   const handleSwap = useCallback((fromKey: string, toKey: string) => {
+    setReportSnapshot(null);
     setAssignments((prev) => {
       const next = { ...prev };
       const fromStudentId = next[fromKey];
@@ -164,6 +165,7 @@ export function SeatingChartView({
   }, [assignments]);
 
   const handleClear = useCallback((seatKey: string) => {
+    setReportSnapshot(null);
     setAssignments((prev) => {
       const next = { ...prev };
       delete next[seatKey];
@@ -177,6 +179,7 @@ export function SeatingChartView({
   }, []);
 
   const handleAssign = useCallback((seatKey: string, externalId: string) => {
+    setReportSnapshot(null);
     setAssignments((prev) => {
       const next = { ...prev };
       // If student was already assigned elsewhere, clear that seat
