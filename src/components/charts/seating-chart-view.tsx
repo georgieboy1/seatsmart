@@ -100,6 +100,11 @@ export function SeatingChartView({
   const [score, setScore] = useState<number>(initialChart?.score ?? 0);
   const [issues, setIssues] = useState<SeatingIssue[]>([]);
   const [explanations, setExplanations] = useState<Record<string, SeatExplanation[]>>({});
+  // Reports belong to exactly the inputs that produced them, never a loaded
+  // or manually edited chart. Generation is advisory, not a compliance check.
+  const [reportSnapshot, setReportSnapshot] = useState<string | null>(null);
+  const reportCurrent = reportSnapshot === JSON.stringify({ assignments, students, layout, options });
+
 
   const unassignedStudents = useMemo(() => {
     // Ensure we have a set of all currently assigned IDs
@@ -119,6 +124,7 @@ export function SeatingChartView({
       ...options,
       lockedSeats,
     });
+    setReportSnapshot(JSON.stringify({ assignments: result.assignments, students, layout, options }));
     setAssignments(result.assignments);
     setScore(result.score);
     setIssues(result.issues);
@@ -191,7 +197,7 @@ export function SeatingChartView({
         name,
         assignments,
         lockedSeats,
-        score,
+        score: reportCurrent ? score : null,
         seed: options.seed ?? 0,
         stale: false,
         staleReasons: [],
@@ -309,7 +315,7 @@ export function SeatingChartView({
               <DropdownMenuItem onClick={() => exportToCsv(name, assignments, studentsById)}>
                 Export as CSV
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportToJson(name, { name, layoutId: layout.id, assignments, score })}>
+              <DropdownMenuItem onClick={() => exportToJson(name, { name, layoutId: layout.id, assignments, score: reportCurrent ? score : null })}>
                 Export as JSON
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -422,15 +428,17 @@ export function SeatingChartView({
               <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Placement Report</h3>
               <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 text-primary border border-primary/20">
                 <Trophy className="h-3 w-3" />
-                <span className="text-xs font-bold font-mono">{score}</span>
+                <span className="text-xs font-bold font-mono">{reportCurrent ? score : "—"}</span>
               </div>
             </div>
             <ScrollArea className="flex-1">
               <div className="p-4 space-y-4">
-                {issues.length === 0 && Object.keys(assignments).length > 0 ? (
+                {!reportCurrent && Object.keys(assignments).length > 0 ? (
+                  <p className="text-sm text-muted-foreground">This chart has not been checked with the current settings. Review placements against student needs. Generating again updates the report and may move unlocked students.</p>
+                ) : issues.length === 0 && Object.keys(assignments).length > 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
                     <CheckCircle2 className="h-8 w-8 mb-2 text-emerald-500/50" />
-                    <p className="text-xs font-medium">All constraints satisfied.</p>
+                    <p className="text-xs font-medium">No issues reported by the generator for the selected settings. Review placements against student needs.</p>
                   </div>
                 ) : issues.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
@@ -485,7 +493,7 @@ export function SeatingChartView({
             unassignedStudents={unassignedStudents}
             assignments={assignments}
             lockedSeats={lockedSeats}
-            explanations={explanations}
+            explanations={reportCurrent ? explanations : {}}
             onSwap={handleSwap}
             onLockToggle={handleLockToggle}
             onClear={handleClear}
