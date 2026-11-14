@@ -18,6 +18,8 @@ npm run build
 
 test -f out/CNAME || { echo "out/CNAME missing (public/CNAME sets the custom domain)" >&2; exit 1; }
 test -f out/.nojekyll || { echo "out/.nojekyll missing (Pages would hide _next/)" >&2; exit 1; }
+# The repo is also connected to Vercel; this stops Vercel trying to build gh-pages commits.
+test -f out/vercel.json || { echo "out/vercel.json missing (Vercel would try to build gh-pages)" >&2; exit 1; }
 
 SOURCE_SHA="$(git rev-parse --short HEAD)"
 
