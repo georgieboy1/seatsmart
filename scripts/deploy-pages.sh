@@ -20,24 +20,26 @@ test -f out/CNAME || { echo "out/CNAME missing (public/CNAME sets the custom dom
 test -f out/.nojekyll || { echo "out/.nojekyll missing (Pages would hide _next/)" >&2; exit 1; }
 
 SOURCE_SHA="$(git rev-parse --short HEAD)"
-TMP="$(mktemp -d)"
-trap 'git worktree remove --force "$TMP" >/dev/null 2>&1 || true' EXIT
 
+# Build a commit whose tree is exactly out/, using a throwaway index so the
+# working tree and the real index are never touched.
+INDEX="$(mktemp)"
+trap 'rm -f "$INDEX"' EXIT
+rm -f "$INDEX"
+GIT_INDEX_FILE="$INDEX" git --work-tree=out add -A .
+TREE="$(GIT_INDEX_FILE="$INDEX" git --work-tree=out write-tree)"
+
+PARENT_ARGS=()
 if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
   git fetch -q origin gh-pages
-  git worktree add -q "$TMP" origin/gh-pages --detach
-else
-  git worktree add -q --detach "$TMP"
-  git -C "$TMP" checkout -q --orphan gh-pages-new
+  PARENT="$(git rev-parse FETCH_HEAD)"
+  if [[ "$(git rev-parse "${PARENT}^{tree}")" == "$TREE" ]]; then
+    echo "Nothing changed since the last deploy."
+    exit 0
+  fi
+  PARENT_ARGS=(-p "$PARENT")
 fi
 
-git -C "$TMP" rm -rq --ignore-unmatch . >/dev/null
-cp -R out/. "$TMP"/
-git -C "$TMP" add -A
-if git -C "$TMP" diff --cached --quiet; then
-  echo "Nothing changed since the last deploy."
-  exit 0
-fi
-git -C "$TMP" commit -q -m "Deploy SynDesk from ${SOURCE_SHA}"
-git -C "$TMP" push -q origin HEAD:refs/heads/gh-pages
-echo "Deployed ${SOURCE_SHA} to gh-pages."
+COMMIT="$(git commit-tree "$TREE" "${PARENT_ARGS[@]}" -m "Deploy SynDesk from ${SOURCE_SHA}")"
+git push -q origin "${COMMIT}:refs/heads/gh-pages"
+echo "Deployed ${SOURCE_SHA} to gh-pages (${COMMIT:0:7})."
