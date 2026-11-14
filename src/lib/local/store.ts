@@ -1,3 +1,4 @@
+import { validateBackupData } from "./backup-validation";
 /**
  * SynDesk's on-device database.
  *
@@ -215,7 +216,13 @@ export function parseBackup(text: string): Tables {
   if (backup.version > BACKUP_VERSION) {
     throw new Error("This backup was made by a newer version of SynDesk. Reload the page and try again.");
   }
-  return normalize(backup.data);
+  if (backup.version !== BACKUP_VERSION) {
+    throw new Error("This backup version is not supported. Nothing was restored.");
+  }
+  if (typeof backup.exportedAt !== "string" || !Number.isFinite(Date.parse(backup.exportedAt))) {
+    throw new Error("This backup has an invalid or missing export date. Nothing was restored.");
+  }
+  return validateBackupData(backup.data);
 }
 
 /** Test helper: forget the in-memory copy so the next read hits storage. */
