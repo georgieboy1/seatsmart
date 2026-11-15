@@ -499,6 +499,7 @@ export function SeatingChartView({
           <p className="text-sm font-semibold">Front wall: {layout.frontWall ?? "unconfirmed (legacy top edge)"} · <Link className="underline" href={`/layouts/edit?id=${encodeURIComponent(layout.id)}`}>Set teaching wall in Rooms</Link></p>
           <p className="mb-3 text-sm">Drag to swap; use the lock to keep a seat. Scroll sideways for the full room.</p>
           <p className="mb-4 text-xs text-muted-foreground">Room key: P = perimeter · D = door · W = window · WB = whiteboard · TD = teacher desk · CS = charging station</p>
+          <div className="relative">
           <SeatingChartGrid
             layout={layout}
             students={students}
@@ -520,12 +521,13 @@ export function SeatingChartView({
                </Button>
             </div>
           )}
+          </div>
         </div>
       </div>
       <section id="chart-print" className="hidden print:block">
         <h1>{name}</h1><p>{layout.name} · Classroom seating · Front: {layout.frontWall ?? "unconfirmed (legacy top edge)"}</p>
         <div style={{display:"grid",gridTemplateColumns:`repeat(${layout.grid[0]?.length ?? 1}, minmax(0,1fr))`,gap:"4px"}}>
-          {layout.grid.flatMap((row,r) => row.map((cell,c) => <div key={`${r},${c}`} style={{border:"1px solid #777",minHeight:"48px",padding:"4px",fontSize:"10pt",overflowWrap:"anywhere"}}>{cell === "seat" ? studentsById.get(assignments[`${r},${c}`])?.name ?? "Empty" : cell.replaceAll("_"," ")}</div>))}
+          {layout.grid.flatMap((row,r) => row.map((cell,c) => <div key={`${r},${c}`} style={{border:cell === "empty" ? "none" : "1px solid #777",minHeight:"48px",padding:"4px",fontSize:"10pt",overflowWrap:"anywhere"}}>{cell === "seat" ? studentsById.get(assignments[`${r},${c}`])?.name ?? "Empty" : cell === "empty" ? "" : cell.replaceAll("_"," ")}</div>))}
         </div>
       </section>
     </div>

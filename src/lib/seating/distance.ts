@@ -41,17 +41,16 @@ export function seatsWithinRadius(
 
 /**
  * Compute a Map<seatKey, podId>. Each connected component of "seat"
- * cells (4-directional BFS — perimeter cells form the walls between
+ * cells (4-directional BFS — non-seat cells separate
  * pods) is one pod.
  *
  * - Traditional layouts collapse to a single pod (all seats are mutually
  *   reachable via cardinal moves over interior seats).
- * - Groups layouts produce one pod per cluster, with perimeter rows /
+ * - Groups layouts produce one pod per cluster, with empty walking-space rows /
  *   columns separating them.
  *
  * Note: 4-directional (not 8) is intentional. Two seats that are
- * diagonal across a perimeter wall are physically on opposite sides of
- * the wall and belong to different pods.
+ * diagonal across a walking-space gap belong to different pods.
  */
 export function computePodMap(layout: ClassroomLayout): Map<string, number> {
   const podMap = new Map<string, number>();

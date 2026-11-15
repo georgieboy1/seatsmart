@@ -36,7 +36,7 @@ export function createTraditionalGrid(
 /**
  * Build a Groups layout grid: `numGroups` clusters (pods) of students,
  * each cluster arranged in a small block (e.g. 2x2 or 3x2).
- * Clusters are separated by walking-space (perimeter cells).
+ * Clusters are separated by walking-space (empty cells).
  * Teacher desk centered on the top perimeter.
  */
 export function createGroupsGrid(
@@ -56,14 +56,17 @@ export function createGroupsGrid(
   const numRowsPods = Math.ceil(numGroups / numColsPods);
 
   // 3. Calculate total grid size
-  // Each pod has 1 perimeter cell to its right and bottom.
+  // Each pod has 1 walking-space cell to its right and bottom.
   // We also need 1 perimeter cell on the top and left edges.
   const totalCols = numColsPods * (podWidth + 1) + 1;
   const totalRows = numRowsPods * (podHeight + 1) + 1;
 
-  // Initialize with perimeter
-  const grid: CellType[][] = Array.from({ length: totalRows }, () =>
-    Array.from({ length: totalCols }, () => "perimeter"),
+  // Only the outer boundary is a wall. Interior aisles and unused pod
+  // slots remain empty; do not depict walking space as physical barriers.
+  const grid: CellType[][] = Array.from({ length: totalRows }, (_, r) =>
+    Array.from({ length: totalCols }, (_, c) =>
+      r === 0 || r === totalRows - 1 || c === 0 || c === totalCols - 1
+        ? "perimeter" : "empty"),
   );
 
   // 4. Place seats for each group

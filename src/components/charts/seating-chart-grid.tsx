@@ -97,6 +97,9 @@ export function SeatingChartGrid({
       );
     }
 
+    if (cell === "empty") {
+      return <div key={seatKey} role="gridcell" aria-label={`Walking space at row ${r}, column ${c}`} className="aspect-square" />;
+    }
     const meta = CELL_META[cell];
     return (
       <div

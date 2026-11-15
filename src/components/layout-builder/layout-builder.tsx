@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import type {
   CellType,
@@ -36,11 +36,6 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
   );
   const [grid, setGrid] = useState<CellType[][]>(layout.grid);
 
-  // Baseline for "discard edits?" check. Updated after every successful
-  // Apply so future Applies compare against the most recent baseline,
-  // not the original load.
-  const originalGridRef = useRef(layout.grid);
-
   function handleCellClick(r: number, c: number) {
     setGrid((prev) => {
       const totalRows = prev.length;
@@ -60,24 +55,13 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
   }
 
   function handleApply() {
-    const hasEdits =
-      JSON.stringify(grid) !== JSON.stringify(originalGridRef.current);
-    if (
-      hasEdits &&
-      !window.confirm(
-        "Applying will regenerate the grid and discard your cell edits. Continue?",
-      )
-    ) {
-      return;
-    }
-
-    const next =
-      type === "traditional"
-        ? createTraditionalGrid(rows, columns)
-        : createGroupsGrid(numGroups, studentsPerGroup);
-
+    const next = type === "traditional"
+      ? createTraditionalGrid(rows, columns)
+      : createGroupsGrid(numGroups, studentsPerGroup);
+    if (JSON.stringify(grid) !== JSON.stringify(next) && !window.confirm(
+      "Rebuild this room grid? This replaces existing seats, walls and room features, including saved customizations. Cancel to keep them and edit individual cells instead.",
+    )) return;
     setGrid(next);
-    originalGridRef.current = next;
   }
 
   return (

@@ -81,13 +81,13 @@ describe("createGroupsGrid", () => {
   it("ensures walking space between pods", () => {
     const grid = createGroupsGrid(4, 4);
     // In a 2x2 pod layout of 4 pods, the middle row (index 3) and column (index 3)
-    // should be entirely perimeter/walking space.
+    // is empty walking space inside the actual outer boundary.
     for (let c = 0; c < grid[0].length; c++) {
-      expect(grid[3][c]).toBe("perimeter");
+      expect(grid[3][c]).toBe(c === 0 || c === grid[0].length - 1 ? "perimeter" : "empty");
     }
     for (let r = 0; r < grid.length; r++) {
       if (grid[r][3] !== "teacher_desk") {
-        expect(grid[r][3]).toBe("perimeter");
+        expect(grid[r][3]).toBe(r === 0 || r === grid.length - 1 ? "perimeter" : "empty");
       }
     }
   });
@@ -125,4 +125,11 @@ describe("countCells", () => {
     expect(countCells(grid, "empty")).toBe(1);
     expect(countCells(grid, "door")).toBe(0);
   });
+});
+
+it.each([[1,1],[4,4],[5,4],[6,6],[3,3],[12,8]])('keeps only outer boundaries as walls for %i groups of %i', (groups,size)=>{
+ const grid=createGroupsGrid(groups,size);
+ expect(countCells(grid,'seat')).toBe(groups*size);
+ for(let r=1;r<grid.length-1;r++)for(let c=1;c<grid[0].length-1;c++)expect(['seat','empty']).toContain(grid[r][c]);
+ for(let r=0;r<grid.length;r++)for(let c=0;c<grid[0].length;c++)if(r===0||c===0||r===grid.length-1||c===grid[0].length-1)expect(['perimeter','teacher_desk']).toContain(grid[r][c]);
 });
