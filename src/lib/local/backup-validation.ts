@@ -12,7 +12,7 @@ const student = z.object({ ...base, cohort_id: id.nullable(), external_id: text.
   together_ids: z.array(id), separate_ids: z.array(id), notes: text.nullable(),
 }).strict();
 const dimension = z.number().int().nonnegative().nullable();
-const layout = z.object({ ...base, type: z.enum(["traditional", "groups"]), rows: dimension, columns: dimension, num_groups: dimension, students_per_group: dimension,
+const layout = z.object({ ...base, front_wall: z.enum(["top", "right", "bottom", "left"]).nullable().optional(), type: z.enum(["traditional", "groups"]), rows: dimension, columns: dimension, num_groups: dimension, students_per_group: dimension,
   grid: z.array(z.array(z.enum(["door", "window", "teacher_desk", "whiteboard", "charging_station", "perimeter", "seat", "empty"]))),
 }).strict();
 const positions = z.record(z.string().regex(/^\d+,\d+$/), id);

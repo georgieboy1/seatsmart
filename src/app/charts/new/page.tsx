@@ -62,7 +62,7 @@ function NewChart() {
     }
 
     return (
-      <main className="mx-auto max-w-7xl px-4 py-8">
+      <main className="mx-auto w-full min-w-0 max-w-7xl px-4 py-8">
         <SeatingChartView 
           layout={selectedLayout} 
           students={students} 

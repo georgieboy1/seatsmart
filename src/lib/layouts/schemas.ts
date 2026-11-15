@@ -29,6 +29,7 @@ const traditionalSchema = z.object({
   numGroups: z.null(),
   studentsPerGroup: z.null(),
   grid: gridSchema,
+  frontWall: z.enum(["top", "right", "bottom", "left"]).nullable().default(null),
 });
 
 const groupsSchema = z.object({
@@ -39,6 +40,7 @@ const groupsSchema = z.object({
   numGroups: z.number().int().min(1).max(12),
   studentsPerGroup: z.number().int().min(1).max(8),
   grid: gridSchema,
+  frontWall: z.enum(["top", "right", "bottom", "left"]).nullable().default(null),
 });
 
 export const layoutCreateSchema = z.discriminatedUnion("type", [

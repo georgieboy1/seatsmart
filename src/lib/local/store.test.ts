@@ -239,7 +239,7 @@ describe("ID format", () => {
 
   it("generates UUIDs even without crypto.randomUUID", () => {
     const original = crypto.randomUUID;
-    // @ts-expect-error simulate an older browser
+    // Simulate an older browser with no randomUUID method.
     delete (crypto as { randomUUID?: unknown }).randomUUID;
     try {
       const [row] = db.insert("cohorts", [{ user_id: db.LOCAL_USER_ID, name: "P1" }]);

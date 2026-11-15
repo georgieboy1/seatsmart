@@ -17,6 +17,7 @@ describe("rowToLayout", () => {
       updated_at: "2026-01-02T00:00:00Z",
     };
     expect(rowToLayout(row)).toEqual({
+      frontWall: null,
       id: "abc",
       userId: "user-1",
       name: "Room 12",
@@ -69,6 +70,7 @@ describe("layoutToInsert", () => {
         "user-1",
       ),
     ).toEqual({
+      front_wall: null,
       user_id: "user-1",
       name: "Pod room",
       type: "groups",

@@ -1,3 +1,4 @@
+import { finalAccommodationIssues } from "./final-accommodation-audit";
 import type { ClassroomLayout } from "@/lib/types/layout";
 import type { Student } from "@/lib/types/student";
 import { parsePositionKey, positionKey } from "./geometry";
@@ -34,7 +35,8 @@ function clampScore(score: number): number {
 
 function finalScore(rawRelationshipScore: number, issues: SeatingIssue[]): number {
   const issuePenalty = issues.filter((issue) => issue.severity !== "info").length * 5;
-  return clampScore(100 + rawRelationshipScore - issuePenalty);
+  // Positive relationship preferences cannot erase unresolved warnings.
+  return Math.min(clampScore(100 + rawRelationshipScore - issuePenalty), clampScore(100 - issuePenalty));
 }
 
 function mergeOptions(options: GenerationOptions): GenerationOptions {
@@ -267,6 +269,8 @@ export function generateSeating(
   });
 
   const issues: SeatingIssue[] = [
+    ...(!classroom.frontWall ? [{ severity: "warning" as const, message: "Front wall is unconfirmed. The legacy top-edge assumption is in use. Choose and save the teaching wall in Rooms before relying on front-placement checks." }] : []),
+    ...finalAccommodationIssues(students, classroom, phase3.assignments, mergedOptions.honorDietaryAccessibility),
     ...phase1.issues,
     ...phase2.issues,
     ...strictlySeparateViolationIssues(
@@ -275,6 +279,20 @@ export function generateSeating(
       mergedOptions.respectStrictlySeparate,
     ),
   ];
+
+  // The report must not say "no issues" while a seat displays a warning.
+  for (const [seatKey, explanations] of Object.entries(phase3.explanations)) {
+    for (const explanation of explanations.filter(item => item.weight < 0)) {
+      const studentId = phase3.assignments[seatKey];
+      if (!studentId) continue;
+      const existing = issues.find(issue => issue.message.includes(explanation.reason));
+      if (existing) {
+        existing.externalIds = [...new Set([...(existing.externalIds ?? []), studentId])];
+        continue;
+      }
+      issues.push({ severity: "warning", message: `Placement explanation needs review: ${explanation.reason}`, externalIds: [studentId] });
+    }
+  }
 
   return {
     assignments: phase3.assignments,

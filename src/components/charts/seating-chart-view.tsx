@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ClassroomLayout } from "@/lib/types/layout";
 import type { Student } from "@/lib/types/student";
@@ -245,9 +246,9 @@ export function SeatingChartView({
   );
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex min-w-0 flex-col">
       {isStale && (
-        <div className="mb-6 flex items-center justify-between rounded-lg bg-amber-50 border border-amber-200 p-4 text-amber-800">
+        <div className="print:hidden mb-6 flex items-center justify-between rounded-lg bg-amber-50 border border-amber-200 p-4 text-amber-800">
           <div className="flex items-center gap-2 text-sm font-medium">
             <AlertTriangle className="h-4 w-4" />
             <span>
@@ -275,9 +276,9 @@ export function SeatingChartView({
       )}
 
       {/* Top Bar */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b pb-6">
+      <div className="print:hidden mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b pb-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => router.back()}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div className="space-y-1">
@@ -293,7 +294,7 @@ export function SeatingChartView({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button 
             variant="ghost" 
             size="sm" 
@@ -304,6 +305,9 @@ export function SeatingChartView({
             <RotateCcw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
           </Button>
 
+          <Button variant="outline" size="sm" disabled={Object.keys(assignments).length === 0} onClick={() => {
+            if (window.confirm("This print view includes student names and seats, but no accommodation details. Keep it private and share only with authorized people. Open print preview?")) window.print();
+          }}>Print chart</Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" disabled={Object.keys(assignments).length === 0}>
@@ -335,9 +339,9 @@ export function SeatingChartView({
         </div>
       </div>
 
-      <div className="flex flex-1 gap-8 overflow-hidden">
+      <div className="print:hidden flex min-w-0 flex-col items-start gap-6 lg:flex-row">
         {/* Left Panel: Controls & Issues */}
-        <div className="w-80 flex flex-col gap-6 overflow-hidden">
+        <div className="flex w-full shrink-0 flex-col gap-6 lg:w-80">
           <div className="space-y-4 rounded-lg border p-4 bg-card">
             <div className="flex items-center justify-between">
               <h3 className="font-medium text-sm">Unplaced {t.people}</h3>
@@ -356,7 +360,7 @@ export function SeatingChartView({
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
-            <ScrollArea className="h-48 rounded-md border bg-muted/20">
+            <ScrollArea className={cn("rounded-md border bg-muted/20", unassignedStudents.length > 0 ? "h-48" : "h-16")}>
               <div className="p-2 space-y-1">
                 {unassignedStudents.length === 0 ? (
                   <p className="text-[10px] text-center text-muted-foreground py-4 italic">
@@ -426,15 +430,17 @@ export function SeatingChartView({
             </Button>
           </div>
 
-          <div className="flex-1 flex flex-col rounded-lg border overflow-hidden bg-card">
+          <div className="flex flex-col rounded-lg border bg-card">
             <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
               <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Placement Report</h3>
               <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 text-primary border border-primary/20">
                 <Trophy className="h-3 w-3" />
-                <span className="text-xs font-bold font-mono">{reportCurrent ? score : "—"}</span>
+                <span className="text-xs font-bold font-mono">{reportCurrent ? `${score}/100` : "—"}</span>
               </div>
             </div>
-            <ScrollArea className="flex-1">
+            <p className="px-4 pt-3 text-xs text-muted-foreground">Generator score is a heuristic, not a guarantee that every student need is met.</p>
+            <p className="px-4 pt-2 text-xs text-muted-foreground">Front wall: {layout.frontWall ?? "unconfirmed (legacy top edge)"}. {layout.frontWall ? "Front checks use the nearest occupied seat row or column to this wall." : "Choose and save the teaching wall in Rooms, then regenerate."} Check each placement before use.</p>
+            <div className="max-h-96 overflow-y-auto" tabIndex={0} aria-label="Placement report details">
               <div className="p-4 space-y-4">
                 {!reportCurrent && Object.keys(assignments).length > 0 ? (
                   <p className="text-sm text-muted-foreground">This chart has not been checked with the current settings. Review placements against student needs. Generating again updates the report and may move unlocked students.</p>
@@ -478,18 +484,21 @@ export function SeatingChartView({
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         </div>
 
         {/* Center: Grid */}
-        <div className="flex-1 flex flex-col items-center justify-center overflow-auto rounded-xl border bg-muted/5 p-8 relative blueprint-grid">
+        <div className="relative order-first flex min-h-96 w-full min-w-0 flex-col items-start overflow-x-auto rounded-xl border bg-muted/5 p-4 pt-14 lg:order-none lg:flex-1 lg:p-8 lg:pt-14">
           <div className="absolute top-4 right-4 flex gap-4 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-1 border rounded-md">
             <div>Seats: <span className="font-medium text-foreground">{stats.totalSeats}</span></div>
             <div>Placed: <span className="font-medium text-foreground">{stats.assignedCount}</span></div>
             <div>Locked: <span className="font-medium text-foreground">{Object.keys(lockedSeats).length}</span></div>
           </div>
           
+          <p className="text-sm font-semibold">Front wall: {layout.frontWall ?? "unconfirmed (legacy top edge)"} · <Link className="underline" href={`/layouts/edit?id=${encodeURIComponent(layout.id)}`}>Set teaching wall in Rooms</Link></p>
+          <p className="mb-3 text-sm">Drag to swap; use the lock to keep a seat. Scroll sideways for the full room.</p>
+          <p className="mb-4 text-xs text-muted-foreground">Room key: P = perimeter · D = door · W = window · WB = whiteboard · TD = teacher desk · CS = charging station</p>
           <SeatingChartGrid
             layout={layout}
             students={students}
@@ -513,6 +522,12 @@ export function SeatingChartView({
           )}
         </div>
       </div>
+      <section id="chart-print" className="hidden print:block">
+        <h1>{name}</h1><p>{layout.name} · Classroom seating · Front: {layout.frontWall ?? "unconfirmed (legacy top edge)"}</p>
+        <div style={{display:"grid",gridTemplateColumns:`repeat(${layout.grid[0]?.length ?? 1}, minmax(0,1fr))`,gap:"4px"}}>
+          {layout.grid.flatMap((row,r) => row.map((cell,c) => <div key={`${r},${c}`} style={{border:"1px solid #777",minHeight:"48px",padding:"4px",fontSize:"10pt",overflowWrap:"anywhere"}}>{cell === "seat" ? studentsById.get(assignments[`${r},${c}`])?.name ?? "Empty" : cell.replaceAll("_"," ")}</div>))}
+        </div>
+      </section>
     </div>
   );
 }

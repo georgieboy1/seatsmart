@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import type {
   CellType,
+  FrontWall,
   ClassroomLayout,
   LayoutType,
 } from "@/lib/types/layout";
@@ -24,6 +25,7 @@ import { GridView } from "./grid-view";
 import { Legend } from "./legend";
 
 export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
+  const [frontWall, setFrontWall] = useState<FrontWall | "">(layout.frontWall ?? "");
   const [name, setName] = useState(layout.name);
   const [type, setType] = useState<LayoutType>(layout.type);
   const [rows, setRows] = useState(layout.rows ?? 5);
@@ -135,6 +137,21 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
             intent for this screen. */}
       </div>
 
+      <fieldset className="space-y-2 border p-4">
+        <legend className="px-1 font-semibold">Teaching orientation</legend>
+        <label htmlFor="front-wall" className="block text-sm font-medium">Front wall on this map</label>
+        <select id="front-wall" name="frontWall" required value={frontWall}
+          onChange={event => setFrontWall(event.target.value as FrontWall)}
+          aria-describedby="front-wall-help" className="rounded border bg-background p-2">
+          <option value="" disabled>Choose the teaching wall</option>
+          <option value="top">↑ Top</option><option value="right">→ Right</option>
+          <option value="bottom">↓ Bottom</option><option value="left">← Left</option>
+        </select>
+        <p id="front-wall-help" className="text-sm text-muted-foreground">Choose where students face for instruction. Front placement means the nearest occupied seat row or column to that wall. Moving a whiteboard does not change this choice.</p>
+        {!layout.frontWall && <p className="text-sm text-amber-700">Not yet confirmed: existing charts used the top edge. Save your choice, then regenerate affected charts.</p>}
+        <p className="text-sm font-semibold" aria-live="polite">Front: {frontWall || "not selected"}</p>
+      </fieldset>
+
       <div className="grid gap-6 lg:grid-cols-[220px_1fr_220px]">
         <ControlsPanel
           type={type}
@@ -158,6 +175,7 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
         <Button
           type="submit"
           variant="outline"
+          formNoValidate
           formAction={duplicateLayout.bind(null, layout.id)}
         >
           Duplicate
@@ -165,6 +183,7 @@ export function LayoutBuilder({ layout }: { layout: ClassroomLayout }) {
         <Button
           type="submit"
           variant="destructive"
+          formNoValidate
           formAction={deleteLayout.bind(null, layout.id)}
           onClick={(e) => {
             if (

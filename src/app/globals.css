@@ -163,3 +163,8 @@
     box-shadow: none !important;
   }
 }
+
+@media print {
+ #chart-print { display: block; background: white; color: black; }
+ @page { size: landscape; margin: 8mm; }
+}

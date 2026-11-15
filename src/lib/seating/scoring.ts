@@ -68,13 +68,13 @@ export function scoreConstraintsFit(
 
   for (const constraint of student.constraints) {
     if (constraint === "front_of_room" || constraint === "vision_front") {
-      const weight = isFrontOfRoom(position) ? 30 : -30;
+      const weight = isFrontOfRoom(position, layout) ? 30 : -30;
       score += weight;
       explanations.push(
         explanation(
           constraint,
           weight,
-          isFrontOfRoom(position)
+          isFrontOfRoom(position, layout)
             ? `${student.name} placed at the front for support.`
             : `${student.name} not placed at the front.`,
         ),

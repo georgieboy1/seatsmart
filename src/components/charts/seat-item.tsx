@@ -137,16 +137,16 @@ export function SeatItem({
           )}
         >
           <div className="flex w-full justify-between items-start">
-            <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-0.5">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onLockToggle?.(seatKey);
                 }}
                 aria-label={isLocked ? `Unlock ${student.name}` : `Lock ${student.name} in this seat`}
-                className="p-0.5 hover:bg-muted rounded"
+                className="p-1.5 hover:bg-muted rounded"
               >
-                <Lock className={cn("h-3 w-3", isLocked ? "text-primary fill-primary" : "text-muted-foreground/30")} />
+                <Lock className={cn("h-3 w-3", isLocked ? "text-primary fill-primary" : "text-muted-foreground/70")} />
               </button>
               {hasWarnings && (
                 <div className="p-0.5">
@@ -173,7 +173,7 @@ export function SeatItem({
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="text-[11px] font-semibold leading-tight line-clamp-2 px-0.5 mb-0.5">
+              <span title={student.name} className="text-[13px] font-semibold leading-tight line-clamp-2 px-0.5 mb-1">
                 {student.name}
               </span>
             </TooltipTrigger>
@@ -205,7 +205,7 @@ export function SeatItem({
                 className="flex h-full w-full items-center justify-center hover:bg-muted/50 transition-colors rounded"
                 aria-label={`Assign ${t.person.toLowerCase()} to this seat`}
               >
-                <UserPlus className="h-4 w-4 text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors" />
+                <UserPlus className="h-4 w-4 text-muted-foreground/70 hover:text-muted-foreground/60 transition-colors" />
               </button>
             </PopoverTrigger>
             <PopoverContent className="p-0 w-64" side="bottom" align="start">

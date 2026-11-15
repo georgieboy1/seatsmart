@@ -46,12 +46,15 @@ export default function RootLayout({
         className="min-h-full flex flex-col bg-background text-foreground"
         suppressHydrationWarning
       >
-        <div className="block lg:hidden bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-xs text-amber-800">
+        <div className="print:hidden print:hidden block lg:hidden bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-xs text-amber-800">
           <div className="flex items-center justify-center gap-2">
             <AlertCircle className="h-3 w-3" />
             <span>SynDesk is optimized for desktop. Some features may be limited on mobile.</span>
           </div>
         </div>
+        <nav aria-label="Workspace navigation" className="flex flex-wrap gap-5 border-b px-6 py-3 text-sm print:hidden">
+          <Link href="/dashboard/">Workspace</Link><Link href="/classes/">Classes</Link><Link href="/students/">Students</Link><Link href="/layouts/">Rooms</Link><Link href="/charts/">Charts</Link>
+        </nav>
         <RouterBridge />
         <ServiceWorker />
         <TerminologyProvider>
@@ -61,7 +64,7 @@ export default function RootLayout({
             </div>
           </TooltipProvider>
         </TerminologyProvider>
-        <footer className="border-t py-6 text-center text-xs text-muted-foreground bg-muted/20">
+        <footer className="print:hidden print:hidden border-t py-6 text-center text-xs text-muted-foreground bg-muted/20">
           <div className="container mx-auto flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-6">
             <p>
               SynDesk by{" "}

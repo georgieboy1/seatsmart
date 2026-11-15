@@ -63,6 +63,16 @@ export function findFeaturePositions(
   return positions;
 }
 
-export function isFrontOfRoom(position: SeatPosition): boolean {
-  return position.row <= 1;
+export function isFrontOfRoom(position: SeatPosition, layout?: ClassroomLayout): boolean {
+  // Preserve historical behavior for unconfirmed legacy rooms, with a warning
+  // emitted by generation. Never infer teacher intent from a whiteboard.
+  if (!layout?.frontWall) return position.row <= 1;
+  const seats = getSeatCandidates(layout);
+  if (seats.length === 0) return false;
+  const horizontal = layout.frontWall === "left" || layout.frontWall === "right";
+  const coordinate = (p: SeatPosition) => horizontal ? p.column : p.row;
+  const values = seats.map(seat => coordinate(seat.position));
+  const edge = layout.frontWall === "bottom" || layout.frontWall === "right"
+    ? Math.max(...values) : Math.min(...values);
+  return coordinate(position) === edge;
 }

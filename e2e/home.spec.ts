@@ -20,7 +20,7 @@ test("a teacher can go from the home page to a saved chart with no account", asy
 
   // Everything lives in localStorage, so a full reload must bring it back.
   await page.reload();
-  await expect(page.getByText("Amara Okafor")).toBeVisible();
+  await expect(page.getByRole("grid").getByText("Amara Okafor")).toBeVisible();
   await expect(page.getByText(/This chart has not been checked with the current settings/)).toBeVisible();
   await expect(page.getByText("All constraints satisfied.")).toHaveCount(0);
   await page.getByRole("button", {name: "Export", exact: true}).click();

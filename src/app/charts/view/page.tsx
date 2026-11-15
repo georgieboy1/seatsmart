@@ -45,7 +45,7 @@ function ChartDetail() {
 
 export default function ChartDetailPage() {
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8">
+    <main className="mx-auto w-full min-w-0 max-w-7xl px-4 py-8">
       <Suspense fallback={null}>
         <ChartDetail />
       </Suspense>

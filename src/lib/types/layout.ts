@@ -8,6 +8,8 @@ export type CellType =
   | "seat"
   | "empty";
 
+export type FrontWall = "top" | "right" | "bottom" | "left";
+
 export type LayoutType = "traditional" | "groups";
 
 export type ClassroomLayout = {
@@ -19,6 +21,8 @@ export type ClassroomLayout = {
   columns: number | null;
   numGroups: number | null;
   studentsPerGroup: number | null;
+  /** Missing/null means the legacy top-front assumption is not confirmed. */
+  frontWall?: FrontWall | null;
   grid: CellType[][];
   createdAt: string;
   updatedAt: string;

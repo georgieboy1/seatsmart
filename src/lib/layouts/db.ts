@@ -1,5 +1,6 @@
 import type {
   CellType,
+  FrontWall,
   ClassroomLayout,
   LayoutType,
   NewLayout,
@@ -14,6 +15,7 @@ export type LayoutRow = {
   columns: number | null;
   num_groups: number | null;
   students_per_group: number | null;
+  front_wall?: FrontWall | null;
   grid: CellType[][];
   created_at: string;
   updated_at: string;
@@ -32,6 +34,7 @@ export function rowToLayout(row: LayoutRow): ClassroomLayout {
     numGroups: row.num_groups,
     studentsPerGroup: row.students_per_group,
     grid: row.grid,
+    frontWall: row.front_wall ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -50,5 +53,6 @@ export function layoutToInsert(
     num_groups: layout.numGroups,
     students_per_group: layout.studentsPerGroup,
     grid: layout.grid,
+    front_wall: layout.frontWall ?? null,
   };
 }

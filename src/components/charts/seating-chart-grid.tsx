@@ -121,8 +121,8 @@ export function SeatingChartGrid({
         id="seating-chart-grid"
         role="grid"
         aria-label="Interactive seating chart grid. Drag students to swap seats."
-        className="inline-grid gap-1 p-4 bg-muted/20 rounded-xl border"
-        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 3.5rem))` }}
+        className="inline-grid shrink-0 gap-1 p-2 bg-background rounded-xl border"
+        style={{ gridTemplateColumns: `repeat(${columns}, 5rem)` }}
       >
         {layout.grid.flatMap((row, r) => row.map((cell, c) => renderCell(cell, r, c)))}
       </div>

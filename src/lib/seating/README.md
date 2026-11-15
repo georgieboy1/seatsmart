@@ -181,7 +181,7 @@ The geometry helpers are deliberately boring:
 - `isAdjacent()` treats orthogonal and diagonal neighbors as adjacent.
 - `manhattanDistance()` supports feature-distance scoring.
 - `findFeaturePositions()` locates doors, windows, teacher desks, etc.
-- `isFrontOfRoom()` treats lower row indexes as the front for v1.0.
+- `isFrontOfRoom()` uses the teacher-selected front wall and nearest occupied seat row/column. Legacy rooms without a selection retain the historical top-edge assumption and receive an explicit warning until a teacher saves a front wall.
 
 The "front is lower row index" assumption matches the current layout builder.
 If the product later lets teachers rotate the room, this is one of the first

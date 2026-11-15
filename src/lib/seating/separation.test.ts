@@ -15,6 +15,8 @@ function makeStudent(overrides: Partial<Student> = {}): Student {
     id: "a",
     userId: "u",
     name: "A",
+    allergies: [],
+    healthFlags: [],
     prosocialTraits: [],
     antisocialTraits: [],
     constraints: [],

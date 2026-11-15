@@ -37,6 +37,7 @@ function parseFormData(formData: FormData) {
     numGroups: !isTraditional ? num("numGroups") : null,
     studentsPerGroup: !isTraditional ? num("studentsPerGroup") : null,
     grid,
+    frontWall: formData.get("frontWall") || null,
   };
 }
 
@@ -95,6 +96,7 @@ export async function updateLayout(id: string, formData: FormData) {
     num_groups: l.numGroups,
     students_per_group: l.studentsPerGroup,
     grid: l.grid,
+    front_wall: l.frontWall,
   });
 
   const charts = db
@@ -126,6 +128,7 @@ export async function duplicateLayout(id: string) {
         numGroups: layout.numGroups,
         studentsPerGroup: layout.studentsPerGroup,
         grid: layout.grid,
+        frontWall: layout.frontWall,
       },
       db.LOCAL_USER_ID,
     ),
